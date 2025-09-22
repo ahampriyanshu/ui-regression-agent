@@ -11,10 +11,9 @@ from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from PIL import Image
 
 from src import llm
-from src.engine.jira_integration import JIRAIntegration
+from src.mcp_servers.jira_server import JIRAIntegration
 from src.difference_analyzer import DifferenceAnalyzer
-from src.prompts import (CONTEXT, JIRA_ANALYSIS_PROMPT, JIRA_TICKET_CREATION_PROMPT,
-                        TOOL_DESCRIPTION, TOOL_NAME, UI_COMPARISON_PROMPT)
+# Prompts are loaded from .txt files
 from src.utils.logger import ui_logger
 
 
@@ -35,7 +34,8 @@ class UIRegressionAgent:
             with open(prompt_path, 'r', encoding='utf-8') as f:
                 return f.read().strip()
         except FileNotFoundError:
-            return UI_COMPARISON_PROMPT
+            return "Compare the baseline and updated screenshots for UI differences."
+    
     
     def _create_mock_differences_response(self) -> Dict:
         """Create mock differences response for demo purposes"""
@@ -117,54 +117,6 @@ class UIRegressionAgent:
             "recommended_actions": ["log_minor_issue", "file_jira_for_signup_change", "file_jira_for_header_positioning"]
         }
     
-    def _create_fallback_ticket_data(self, issue_details: Dict) -> Dict:
-        """Create fallback ticket data when LLM parsing fails"""
-        change_desc = issue_details.get("change_description", "UI regression detected")
-        reasoning = issue_details.get("reasoning", "Automated UI regression detection")
-        classification = issue_details.get("classification", "UNKNOWN")
-        
-        # Create a descriptive title
-        title = f"UI Regression: {change_desc}"
-        if len(title) > 100:
-            title = title[:97] + "..."
-        
-        # Create detailed description
-        description = f"""
-**Automated UI Regression Detection**
-
-**Issue Description:** {change_desc}
-
-**Analysis:** {reasoning}
-
-**Classification:** {classification}
-
-**Detection Details:**
-- Element Type: {issue_details.get('element_type', 'Unknown')}
-- Location: {issue_details.get('location', 'Unknown')}
-- Severity: {issue_details.get('severity', 'Unknown')}
-
-**JIRA Match Status:** {issue_details.get('jira_match', 'No matching ticket found')}
-
-**Recommended Action:** Manual review and resolution required.
-
-*This ticket was automatically created by the UI Regression Detection Agent.*
-        """.strip()
-        
-        # Determine priority based on classification
-        priority_map = {
-            "CRITICAL": "High",
-            "MAJOR": "High", 
-            "MINOR": "Medium",
-            "LOW": "Low"
-        }
-        priority = priority_map.get(classification, "Medium")
-        
-        return {
-            "title": title,
-            "description": description,
-            "priority": priority,
-            "type": "Bug"
-        }
     
     def encode_image_to_base64(self, image_path: str) -> str:
         """Encode image to base64 for LLM processing"""
@@ -261,65 +213,53 @@ class UIRegressionAgent:
         return analysis
     
     async def create_jira_ticket_for_issue(self, issue_details: Dict) -> Optional[Dict]:
-        """Create a JIRA ticket for a critical issue"""
+        """Create a JIRA ticket directly from structured issue data"""
         self.logger.logger.info("Creating JIRA ticket for critical issue")
         
         try:
-            # Check if we have OpenAI API key
-            import os
-            if not os.getenv("OPENAI_API_KEY"):
-                # Create ticket directly with mock data
-                change_desc = issue_details.get("change_description", "UI regression detected")
-                title = f"UI Regression: {change_desc}"
-                description = f"Automated detection of UI regression: {change_desc}"
-                priority = "High" if issue_details.get("classification") == "CRITICAL" else "Medium"
-                
-                new_ticket = await self.jira.create_ticket(
-                    title=title,
-                    description=description,
-                    priority=priority,
-                    ticket_type="Bug"
-                )
-                
-                if new_ticket:
-                    self.logger.logger.info(f"JIRA ticket created: {new_ticket['id']}")
-                    return new_ticket
-                else:
-                    self.logger.logger.error("Failed to create JIRA ticket")
-                    return None
+            # Extract details from the structured difference analysis data
+            difference_details = issue_details.get("difference_details", {})
+            reasoning = issue_details.get("reasoning", "No reasoning provided")
+            classification = issue_details.get("classification", "UNKNOWN")
             
-            # Generate ticket details using LLM
-            prompt = JIRA_TICKET_CREATION_PROMPT.format(
-                issue_details=json.dumps(issue_details, indent=2)
-            )
+            # Create title from change description
+            change_desc = difference_details.get("change_description", "UI regression detected")
+            title = f"UI Regression: {change_desc}"
+            if len(title) > 100:
+                title = title[:97] + "..."
             
-            response = await llm.acomplete(prompt)
+            # Create detailed description
+            description = f"""**Automated UI Regression Detection**
+
+**Issue Description:** {change_desc}
+
+**Analysis:** {reasoning}
+
+**Classification:** {classification}
+
+**Detection Details:**
+- Element Type: {difference_details.get('element_type', 'Unknown')}
+- Location: {difference_details.get('location', 'Unknown')}
+- Severity: {difference_details.get('severity', 'Unknown')}
+- Details: {difference_details.get('details', 'No additional details')}
+
+**Recommended Action:** Manual review and resolution required.
+
+*This ticket was automatically created by the UI Regression Detection Agent.*"""
             
-            # Try to parse the JSON response with better error handling
-            try:
-                ticket_data = json.loads(response.text)
-            except json.JSONDecodeError:
-                # If JSON parsing fails, try to extract JSON from the response
-                import re
-                json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
-                if json_match:
-                    try:
-                        ticket_data = json.loads(json_match.group())
-                    except json.JSONDecodeError:
-                        # If still fails, create ticket with fallback data
-                        self.logger.logger.warning("Could not parse LLM ticket response, using fallback data")
-                        ticket_data = self._create_fallback_ticket_data(issue_details)
-                else:
-                    # No JSON found, use fallback
-                    self.logger.logger.warning("No JSON found in LLM response, using fallback data")
-                    ticket_data = self._create_fallback_ticket_data(issue_details)
+            # Determine priority based on classification and severity
+            priority = "High" if classification == "CRITICAL" else "Medium"
+            if difference_details.get('severity') == 'high':
+                priority = "High"
+            elif difference_details.get('severity') == 'low':
+                priority = "Low"
             
             # Create the ticket via JIRA integration
             new_ticket = await self.jira.create_ticket(
-                title=ticket_data["title"],
-                description=ticket_data["description"],
-                priority=ticket_data["priority"],
-                ticket_type=ticket_data["type"]
+                title=title,
+                description=description,
+                priority=priority,
+                ticket_type="Bug"
             )
             
             if new_ticket:

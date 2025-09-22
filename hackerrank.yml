@@ -9,10 +9,8 @@ configuration:
         default_open_files:
           - app.py
           - src/agent.py
-          - src/prompts.py
           - prompts/ui_regression.txt
-          - screenshots/login_baseline.png
-          - screenshots/login_updated.png
+          - prompts/difference_analysis.txt
     project_menu:
       run: streamlit run app.py --server.port 8000
       install: pip install -r requirements.txt

@@ -6,7 +6,7 @@ import json
 import os
 from typing import Dict, List, Optional
 from src import llm
-from src.engine.jira_integration import JIRAIntegration
+from src.mcp_servers.jira_server import JIRAIntegration
 from src.utils.logger import ui_logger
 
 

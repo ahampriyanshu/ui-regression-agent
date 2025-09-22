@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "timestamp": "2025-09-22T15:34:09.301429",
+    "type": "MINOR_ISSUE",
+    "issue": {
+      "title": "Forgot Password text missing question mark",
+      "description": "The 'Forgot Password' link text is missing the question mark that was expected",
+      "element_type": "text",
+      "location": "Below password input field",
+      "severity": "minor"
+    }
+  }
+]
