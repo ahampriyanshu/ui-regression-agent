@@ -7,8 +7,6 @@ import logging
 import os
 from datetime import datetime
 from typing import Dict, List
-
-
 class UIRegressionLogger:
     """Custom logger for UI regression testing"""
     
@@ -17,7 +15,7 @@ class UIRegressionLogger:
         self.log_dir = log_dir
         os.makedirs(log_dir, exist_ok=True)
         
-        # Setup main logger
+
         self.logger = logging.getLogger("ui_regression")
         self.logger.setLevel(logging.INFO)
         
@@ -46,7 +44,7 @@ class UIRegressionLogger:
     def log_regression_analysis(self, baseline_image: str, updated_image: str, 
                               differences: List[Dict], analysis: Dict):
         """Log the complete regression analysis"""
-        # Only log to console, keep analysis in memory
+
         self.logger.info(f"UI Regression Analysis completed: {len(differences)} differences found")
     
     def log_minor_issue(self, issue: Dict):
@@ -59,10 +57,10 @@ class UIRegressionLogger:
             "issue": issue
         }
         
-        # Log to main log
+
         self.logger.warning(f"Minor UI issue detected: {issue.get('change_description', 'Unknown')}")
         
-        # Append to minor issues file
+
         minor_issues_file = os.path.join(self.log_dir, "minor_issues.json")
         
         try:
@@ -86,7 +84,7 @@ class UIRegressionLogger:
             "minor_issues": 0
         }
         
-        # Count minor issues
+
         minor_issues_file = os.path.join(self.log_dir, "minor_issues.json")
         if os.path.exists(minor_issues_file):
             try:
@@ -98,6 +96,4 @@ class UIRegressionLogger:
         
         return summary
 
-
-# Global logger instance
 ui_logger = UIRegressionLogger()

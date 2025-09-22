@@ -10,62 +10,21 @@ from typing import Dict, List, Optional
 from fastmcp import FastMCP
 
 logger = logging.getLogger(__name__)
+def load_jira_data():
+    """Load JIRA tickets data from data/jira_tickets.json"""
+    import os
+    import json
+    
+    data_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'jira_tickets.json')
+    try:
+        with open(data_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data['JIRA_TICKETS'], data['NEW_TICKETS'], data['TICKET_COUNTER']
+    except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+        logger.error(f"Error loading JIRA data from {data_file}: {e}")
 
-# Mock JIRA tickets data
-JIRA_TICKETS = {
-    "UI-001": {
-        "id": "UI-001",
-        "title": "Add new href 'Forgot Password?'",
-        "description": "Add a 'Forgot Password?' link below the login form for users who need to reset their password",
-        "status": "In Review",
-        "priority": "Medium",
-        "type": "Feature",
-        "created": "2024-01-15T10:00:00Z",
-        "updated": "2024-01-16T14:30:00Z",
-        "assignee": "frontend.dev",
-        "reporter": "product.manager"
-    },
-    "UI-002": {
-        "id": "UI-002", 
-        "title": "Change the input field for password from type text to password",
-        "description": "Update the password input field to use type='password' for security and add an eye icon to toggle visibility",
-        "status": "In Review",
-        "priority": "High",
-        "type": "Feature",
-        "created": "2024-01-10T09:00:00Z",
-        "updated": "2024-01-18T16:45:00Z",
-        "assignee": "frontend.dev",
-        "reporter": "product.manager"
-    },
-    "UI-003": {
-        "id": "UI-003",
-        "title": "The 'Login' button would change from transparent to green",
-        "description": "Update the Login button styling to use green background color instead of transparent for better visibility",
-        "status": "In Review", 
-        "priority": "Low",
-        "type": "Enhancement",
-        "created": "2024-01-12T11:30:00Z",
-        "updated": "2024-01-17T13:20:00Z",
-        "assignee": "frontend.dev",
-        "reporter": "product.manager"
-    },
-    "UI-004": {
-        "id": "UI-004",
-        "title": "Add header at top with 'Home' href on extreme left and 'About' on the extreme right",
-        "description": "Create a new header component with navigation links - 'Home' positioned on the far left and 'About' positioned on the far right",
-        "status": "In Review",
-        "priority": "Medium", 
-        "type": "Feature",
-        "created": "2024-01-14T15:00:00Z",
-        "updated": "2024-01-14T15:00:00Z",
-        "assignee": "frontend.dev",
-        "reporter": "product.manager"
-    }
-}
-
-# Store for new tickets created during regression testing
-NEW_TICKETS = {}
-TICKET_COUNTER = 5
+        return {}, {}, 5
+JIRA_TICKETS, NEW_TICKETS, TICKET_COUNTER = load_jira_data()
 
 mcp = FastMCP("JIRA Mock Server")
 
@@ -95,7 +54,9 @@ def search_tickets(query: str) -> List[Dict]:
     return results
 
 @mcp.tool()
-def create_ticket(title: str, description: str, priority: str = "Medium", ticket_type: str = "Bug") -> Dict:
+def create_ticket(title: str, description: str, priority: str = "Medium", ticket_type: str = "Bug", 
+                 status: str = "Open", assignee: str = "auto.assigned@company.com", 
+                 reporter: str = "ui.regression.agent@company.com") -> Dict:
     """Create a new JIRA ticket"""
     global TICKET_COUNTER
     
@@ -106,13 +67,13 @@ def create_ticket(title: str, description: str, priority: str = "Medium", ticket
         "id": ticket_id,
         "title": title,
         "description": description,
-        "status": "Open",
+        "status": status,
         "priority": priority,
         "type": ticket_type,
         "created": datetime.now().isoformat() + "Z",
         "updated": datetime.now().isoformat() + "Z",
-        "assignee": "auto.assigned@company.com",
-        "reporter": "ui.regression.agent@company.com"
+        "assignee": assignee,
+        "reporter": reporter
     }
     
     NEW_TICKETS[ticket_id] = new_ticket
@@ -141,8 +102,6 @@ def get_tickets_by_status(status: str) -> List[Dict]:
             results.append(ticket)
     
     return results
-
-
 class JIRAIntegration:
     """JIRA integration for managing tickets during UI regression testing"""
     
@@ -187,8 +146,10 @@ class JIRAIntegration:
             return []
     
     async def create_ticket(self, title: str, description: str, priority: str = "Medium", 
-                          ticket_type: str = "Bug") -> Optional[Dict]:
-        """Create a new JIRA ticket"""
+                          ticket_type: str = "Bug", status: str = "Open", 
+                          assignee: str = "auto.assigned@company.com", 
+                          reporter: str = "ui.regression.agent@company.com") -> Optional[Dict]:
+        """Create a new JIRA ticket with customizable fields"""
         try:
             ticket_id = f"UI-{self.ticket_counter:03d}"
             self.ticket_counter += 1
@@ -197,13 +158,13 @@ class JIRAIntegration:
                 "id": ticket_id,
                 "title": title,
                 "description": description,
-                "status": "Todo",
+                "status": status,
                 "priority": priority,
                 "type": ticket_type,
                 "created": datetime.now().isoformat() + "Z",
                 "updated": datetime.now().isoformat() + "Z",
-                "assignee": "frontend.dev",
-                "reporter": "ui_regression.agent"
+                "assignee": assignee,
+                "reporter": reporter
             }
             
             self.new_tickets[ticket_id] = new_ticket
@@ -297,7 +258,5 @@ class JIRAIntegration:
                     updated_tickets.append(ticket)
         
         return updated_tickets
-
-
 if __name__ == "__main__":
     mcp.run()

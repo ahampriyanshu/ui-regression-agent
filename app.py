@@ -10,9 +10,7 @@ from io import BytesIO
 import streamlit as st
 from PIL import Image
 
-from src.agent import agent
-
-
+from main import MainOrchestrator
 def main():
     """Main Streamlit app"""
     st.set_page_config(
@@ -24,10 +22,10 @@ def main():
     st.title("🔍 UI Regression Detection Agent")
     st.markdown("**Detect UI regressions and cross-check with JIRA tickets**")
     
-    # Sidebar for configuration
+
     st.sidebar.header("Configuration")
     
-    # File upload section
+
     st.header("📸 Upload Screenshots")
     
     col1, col2 = st.columns(2)
@@ -56,7 +54,7 @@ def main():
             updated_image = Image.open(updated_file)
             st.image(updated_image, caption="Updated Screenshot", use_column_width=True)
     
-    # Use default screenshots if none uploaded
+
     if not baseline_file or not updated_file:
         st.info("💡 **Tip**: You can also use the default screenshots for testing")
         
@@ -67,29 +65,29 @@ def main():
             if os.path.exists(baseline_path) and os.path.exists(updated_path):
                 st.success("✅ Using default screenshots")
                 
-                # Display default images
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.image(baseline_path, caption="Default Baseline", use_column_width=True)
                 with col2:
                     st.image(updated_path, caption="Default Updated", use_column_width=True)
                 
-                # Store paths in session state
+
                 st.session_state.baseline_path = baseline_path
                 st.session_state.updated_path = updated_path
             else:
                 st.error("❌ Default screenshots not found")
     
-    # Analysis section
+
     st.header("🔍 Run Analysis")
     
     if st.button("🚀 Start UI Regression Analysis", type="primary"):
-        # Determine image paths
+
         baseline_path = None
         updated_path = None
         
         if baseline_file and updated_file:
-            # Save uploaded files temporarily
+
             baseline_path = f"temp_baseline_{baseline_file.name}"
             updated_path = f"temp_updated_{updated_file.name}"
             
@@ -106,13 +104,14 @@ def main():
             st.error("❌ Please upload both screenshots or use default ones")
             return
         
-        # Run analysis
+
         with st.spinner("🔍 Analyzing screenshots and checking JIRA tickets..."):
             try:
-                # Run the async function
-                result = asyncio.run(agent.run_regression_test(baseline_path, updated_path))
+
+                orchestrator = MainOrchestrator()
+                result = asyncio.run(orchestrator.run_regression_test(baseline_path, updated_path))
                 
-                # Clean up temporary files
+
                 if baseline_file and updated_file:
                     try:
                         os.remove(baseline_path)
@@ -120,18 +119,16 @@ def main():
                     except:
                         pass
                 
-                # Display results
+
                 display_results(result)
                 
             except Exception as e:
                 st.error(f"❌ Error during analysis: {e}")
-
-
 def display_results(result):
     """Display analysis results"""
     st.header("📊 Analysis Results")
     
-    # Status
+
     status = result.get('status', 'unknown')
     if status == 'completed':
         st.success("✅ Analysis completed successfully")
@@ -142,7 +139,7 @@ def display_results(result):
         st.error(f"❌ Analysis failed: {result.get('message', 'Unknown error')}")
         return
     
-    # Summary metrics
+
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -160,7 +157,7 @@ def display_results(result):
         total_issues = summary.get('minor_issues', 0) + summary.get('critical_issues', 0)
         st.metric("🚨 Total Issues", total_issues)
     
-    # Detailed summary
+
     if 'summary' in result:
         st.subheader("📈 Summary Report")
         summary = result['summary']
@@ -179,7 +176,7 @@ def display_results(result):
             st.write(f"• Successful Validations: {summary.get('successful_validations', 0)}")
             st.write(f"• Failed Validations: {summary.get('failed_validations', 0)}")
     
-    # Actions taken
+
     if 'details' in result and 'actions' in result['details']:
         st.subheader("🎯 Actions Taken")
         
@@ -210,7 +207,7 @@ def display_results(result):
         else:
             st.info("No actions were required")
     
-    # Differences found
+
     if 'details' in result and 'differences' in result['details']:
         st.subheader("🔍 Differences Detected")
         
@@ -230,7 +227,7 @@ def display_results(result):
         else:
             st.info("No differences detected")
     
-    # Analysis details
+
     if 'details' in result and 'analysis' in result['details']:
         st.subheader("🧠 JIRA Analysis")
         
@@ -253,10 +250,8 @@ def display_results(result):
                 
                 st.write("---")
     
-    # Raw data (collapsible)
+
     with st.expander("🔧 Raw Analysis Data"):
         st.json(result)
-
-
 if __name__ == "__main__":
     main()
