@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "timestamp": "2025-09-22T21:05:01.013987",
+    "type": "MINOR_ISSUE",
+    "issue": {
+      "title": "Register button text changed to Sign Up",
+      "description": "The text on the Register button has been changed to 'Sign Up', which is not covered by any existing JIRA ticket.",
+      "element_type": "button",
+      "location": "below login button",
+      "severity": "minor"
+    }
+  },
+  {
+    "timestamp": "2025-09-22T21:05:01.015961",
+    "type": "MINOR_ISSUE",
+    "issue": {
+      "title": "Forgot Password link position adjusted",
+      "description": "The 'Forgot Password' link has been moved slightly upwards, which is not covered by any existing JIRA ticket.",
+      "element_type": "text",
+      "location": "right of password input field",
+      "severity": "minor"
+    }
+  },
+  {
+    "timestamp": "2025-09-22T21:05:01.016558",
+    "type": "MINOR_ISSUE",
+    "issue": {
+      "title": "Register link color changed",
+      "description": "The color of the Register link has been changed to a lighter blue with reduced opacity, which is not covered by any existing JIRA ticket.",
+      "element_type": "text",
+      "location": "below login button",
+      "severity": "minor"
+    }
+  }
+]

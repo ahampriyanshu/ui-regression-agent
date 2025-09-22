@@ -23,6 +23,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.pytest_cache/
 
 # Virtual environments
 venv/
@@ -54,6 +55,6 @@ Thumbs.db
 
 reports/
 
-unit.xml
+# Scripts
 
-.pytest_cache/
+fix_linting.py

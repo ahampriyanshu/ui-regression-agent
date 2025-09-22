@@ -6,13 +6,15 @@ This script creates mock data for a 3-day OOO period with realistic scenarios.
 import sqlite3
 import os
 
+
 def create_email_database():
     """Create and populate email database for test case 1"""
     conn = sqlite3.connect("data/databases/emails.db")
     cursor = conn.cursor()
-    
+
     # Create emails table if it doesn't exist
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS emails (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             custom_id TEXT UNIQUE,
@@ -26,8 +28,9 @@ def create_email_database():
             meeting_duration INTEGER,
             attendees TEXT
         )
-    """)
-    
+    """
+    )
+
     # Test Case 1: 3-day OOO period (Jan 1-3, 2024) - 20% important, 80% noise
     emails = [
         # IMPORTANT EMAILS (20% - 2 out of 10)
@@ -38,7 +41,7 @@ def create_email_database():
             "body": "Our production API is down and customers are affected. Need immediate attention.",
             "received_date": "2024-01-02 09:00:00",
             "is_read": 0,
-            "thread_id": "urgent_001"
+            "thread_id": "urgent_001",
         },
         {
             "id": "email_002",
@@ -47,9 +50,8 @@ def create_email_database():
             "body": "We need to reschedule the Q1 planning meeting. Please confirm your availability for next week.",
             "received_date": "2024-01-03 14:30:00",
             "is_read": 0,
-            "thread_id": "planning_001"
+            "thread_id": "planning_001",
         },
-        
         # NOISE EMAILS (80% - 8 out of 10)
         # New Year greetings
         {
@@ -59,7 +61,7 @@ def create_email_database():
             "body": "Wishing everyone a prosperous and successful new year!",
             "received_date": "2024-01-01 00:01:00",
             "is_read": 1,
-            "thread_id": "greetings_001"
+            "thread_id": "greetings_001",
         },
         {
             "id": "email_004",
@@ -68,9 +70,8 @@ def create_email_database():
             "body": "Thank you for your hard work in 2023. Looking forward to an amazing 2024!",
             "received_date": "2024-01-01 08:00:00",
             "is_read": 1,
-            "thread_id": "ceo_message_001"
+            "thread_id": "ceo_message_001",
         },
-        
         # Meeting reminders
         {
             "id": "email_005",
@@ -79,7 +80,7 @@ def create_email_database():
             "body": "Don't forget about tomorrow's team standup at 9 AM.",
             "received_date": "2024-01-02 17:00:00",
             "is_read": 0,
-            "thread_id": "reminder_001"
+            "thread_id": "reminder_001",
         },
         {
             "id": "email_006",
@@ -88,9 +89,8 @@ def create_email_database():
             "body": "Monthly all hands meeting scheduled for next Friday.",
             "received_date": "2024-01-03 10:00:00",
             "is_read": 0,
-            "thread_id": "reminder_002"
+            "thread_id": "reminder_002",
         },
-        
         # Product promotions
         {
             "id": "email_007",
@@ -99,7 +99,7 @@ def create_email_database():
             "body": "Start 2024 with our premium features at half price!",
             "received_date": "2024-01-01 12:00:00",
             "is_read": 0,
-            "thread_id": "promo_001"
+            "thread_id": "promo_001",
         },
         {
             "id": "email_008",
@@ -108,9 +108,8 @@ def create_email_database():
             "body": "New Q1 sales targets and incentive structure announced.",
             "received_date": "2024-01-02 11:00:00",
             "is_read": 0,
-            "thread_id": "sales_001"
+            "thread_id": "sales_001",
         },
-        
         # IT notifications
         {
             "id": "email_009",
@@ -119,7 +118,7 @@ def create_email_database():
             "body": "Scheduled system maintenance has been completed successfully.",
             "received_date": "2024-01-03 06:00:00",
             "is_read": 1,
-            "thread_id": "maintenance_001"
+            "thread_id": "maintenance_001",
         },
         {
             "id": "email_010",
@@ -128,31 +127,42 @@ def create_email_database():
             "body": "Monthly security awareness training materials are now available.",
             "received_date": "2024-01-03 15:00:00",
             "is_read": 0,
-            "thread_id": "security_001"
-        }
+            "thread_id": "security_001",
+        },
     ]
-    
+
     for email in emails:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR IGNORE INTO emails (custom_id, sender, subject, body, received_date, is_read, thread_id, meeting_date, meeting_duration, attendees)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            email["id"], email["sender"], email["subject"], email["body"], email["received_date"],
-            email["is_read"], email["thread_id"], 
-            email.get("meeting_date"), email.get("meeting_duration"), 
-            email.get("attendees")
-        ))
-    
+        """,
+            (
+                email["id"],
+                email["sender"],
+                email["subject"],
+                email["body"],
+                email["received_date"],
+                email["is_read"],
+                email["thread_id"],
+                email.get("meeting_date"),
+                email.get("meeting_duration"),
+                email.get("attendees"),
+            ),
+        )
+
     conn.commit()
     conn.close()
+
 
 def create_calendar_database():
     """Create and populate calendar database for test case 1"""
     conn = sqlite3.connect("data/databases/calendar.db")
     cursor = conn.cursor()
-    
+
     # Create events table if it doesn't exist
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             custom_id TEXT UNIQUE,
@@ -167,8 +177,9 @@ def create_calendar_database():
             reminder_set BOOLEAN DEFAULT 1,
             project_name TEXT
         )
-    """)
-    
+    """
+    )
+
     # Test Case 1: 3-day OOO period (Jan 1-3, 2024) - 20% important, 80% noise
     events = [
         # IMPORTANT EVENTS (20% - 2 out of 10)
@@ -180,7 +191,7 @@ def create_calendar_database():
             "end_time": "2024-01-02 12:00:00",
             "location": "War Room",
             "attendees": "dev-team@company.com,manager@company.com",
-            "event_type": "meeting"
+            "event_type": "meeting",
         },
         {
             "id": "event_002",
@@ -189,9 +200,8 @@ def create_calendar_database():
             "start_time": "2024-01-03 17:00:00",
             "end_time": "2024-01-03 17:00:00",
             "event_type": "deadline",
-            "project_name": "Q1 Planning"
+            "project_name": "Q1 Planning",
         },
-        
         # NOISE EVENTS (80% - 8 out of 10)
         # New Year events
         {
@@ -201,7 +211,7 @@ def create_calendar_database():
             "start_time": "2024-01-01 00:00:00",
             "end_time": "2024-01-01 23:59:59",
             "event_type": "holiday",
-            "is_all_day": 1
+            "is_all_day": 1,
         },
         {
             "id": "event_004",
@@ -211,9 +221,8 @@ def create_calendar_database():
             "end_time": "2024-01-02 13:30:00",
             "location": "Company Cafeteria",
             "attendees": "team@company.com",
-            "event_type": "social"
+            "event_type": "social",
         },
-        
         # Regular meetings
         {
             "id": "event_005",
@@ -223,7 +232,7 @@ def create_calendar_database():
             "end_time": "2024-01-02 09:30:00",
             "location": "Conference Room A",
             "attendees": "dev-team@company.com",
-            "event_type": "meeting"
+            "event_type": "meeting",
         },
         {
             "id": "event_006",
@@ -233,9 +242,8 @@ def create_calendar_database():
             "end_time": "2024-01-03 09:30:00",
             "location": "Conference Room A",
             "attendees": "dev-team@company.com",
-            "event_type": "meeting"
+            "event_type": "meeting",
         },
-        
         # Training sessions
         {
             "id": "event_007",
@@ -245,7 +253,7 @@ def create_calendar_database():
             "end_time": "2024-01-02 15:00:00",
             "location": "Training Room",
             "attendees": "all@company.com",
-            "event_type": "training"
+            "event_type": "training",
         },
         {
             "id": "event_008",
@@ -255,9 +263,8 @@ def create_calendar_database():
             "end_time": "2024-01-03 11:30:00",
             "location": "Conference Room B",
             "attendees": "team@company.com",
-            "event_type": "workshop"
+            "event_type": "workshop",
         },
-        
         # Company events
         {
             "id": "event_009",
@@ -267,7 +274,7 @@ def create_calendar_database():
             "end_time": "2024-01-03 16:00:00",
             "location": "Main Auditorium",
             "attendees": "all@company.com",
-            "event_type": "meeting"
+            "event_type": "meeting",
         },
         {
             "id": "event_010",
@@ -277,30 +284,41 @@ def create_calendar_database():
             "end_time": "2024-01-03 12:00:00",
             "location": "IT Conference Room",
             "attendees": "it-team@company.com",
-            "event_type": "meeting"
-        }
+            "event_type": "meeting",
+        },
     ]
-    
+
     for event in events:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR IGNORE INTO events (custom_id, title, description, start_time, end_time, location, attendees, event_type, project_name)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            event["id"], event["title"], event["description"], event["start_time"], event["end_time"],
-            event.get("location"), event.get("attendees"), event["event_type"],
-            event.get("project_name")
-        ))
-    
+        """,
+            (
+                event["id"],
+                event["title"],
+                event["description"],
+                event["start_time"],
+                event["end_time"],
+                event.get("location"),
+                event.get("attendees"),
+                event["event_type"],
+                event.get("project_name"),
+            ),
+        )
+
     conn.commit()
     conn.close()
+
 
 def create_slack_database():
     """Create and populate Slack database for test case 1"""
     conn = sqlite3.connect("data/databases/slack.db")
     cursor = conn.cursor()
-    
+
     # Create messages table if it doesn't exist
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             custom_id TEXT UNIQUE,
@@ -311,8 +329,9 @@ def create_slack_database():
             is_mention BOOLEAN DEFAULT 0,
             thread_id TEXT
         )
-    """)
-    
+    """
+    )
+
     # Test Case 1: 3-day OOO period (Jan 1-3, 2024) - 20% important, 80% noise
     messages = [
         # IMPORTANT MESSAGES (20% - 2 out of 10)
@@ -323,7 +342,7 @@ def create_slack_database():
             "message": "@john.doe URGENT: Production API is down. Need you to investigate immediately when you're back.",
             "timestamp": "2024-01-02 09:15:00",
             "is_mention": 1,
-            "thread_id": "urgent_001"
+            "thread_id": "urgent_001",
         },
         {
             "id": "slack_002",
@@ -332,9 +351,8 @@ def create_slack_database():
             "message": "@john.doe We need to discuss the Q1 technical roadmap. Please schedule a meeting when you return.",
             "timestamp": "2024-01-03 16:00:00",
             "is_mention": 1,
-            "thread_id": "roadmap_001"
+            "thread_id": "roadmap_001",
         },
-        
         # NOISE MESSAGES (80% - 8 out of 10)
         # New Year messages
         {
@@ -344,7 +362,7 @@ def create_slack_database():
             "message": "Happy New Year everyone! 🎉 Looking forward to an amazing 2024!",
             "timestamp": "2024-01-01 00:05:00",
             "is_mention": 0,
-            "thread_id": "newyear_001"
+            "thread_id": "newyear_001",
         },
         {
             "id": "slack_004",
@@ -353,9 +371,8 @@ def create_slack_database():
             "message": "Anyone else excited about 2024? I have so many goals! 💪",
             "timestamp": "2024-01-01 10:30:00",
             "is_mention": 0,
-            "thread_id": "goals_001"
+            "thread_id": "goals_001",
         },
-        
         # General chatter
         {
             "id": "slack_005",
@@ -364,7 +381,7 @@ def create_slack_database():
             "message": "Good morning team! Hope everyone had a great New Year break.",
             "timestamp": "2024-01-02 08:30:00",
             "is_mention": 0,
-            "thread_id": "morning_001"
+            "thread_id": "morning_001",
         },
         {
             "id": "slack_006",
@@ -373,9 +390,8 @@ def create_slack_database():
             "message": "The office coffee machine is working great today! ☕",
             "timestamp": "2024-01-02 09:45:00",
             "is_mention": 0,
-            "thread_id": "coffee_001"
+            "thread_id": "coffee_001",
         },
-        
         # Meeting discussions
         {
             "id": "slack_007",
@@ -384,7 +400,7 @@ def create_slack_database():
             "message": "Reminder: Q1 Goals Setting Workshop tomorrow at 10 AM",
             "timestamp": "2024-01-02 17:00:00",
             "is_mention": 0,
-            "thread_id": "workshop_001"
+            "thread_id": "workshop_001",
         },
         {
             "id": "slack_008",
@@ -393,9 +409,8 @@ def create_slack_database():
             "message": "System maintenance completed successfully. All services are back online.",
             "timestamp": "2024-01-03 06:30:00",
             "is_mention": 0,
-            "thread_id": "maintenance_001"
+            "thread_id": "maintenance_001",
         },
-        
         # Team updates
         {
             "id": "slack_009",
@@ -404,7 +419,7 @@ def create_slack_database():
             "message": "Just finished reviewing the new API documentation. Looks good!",
             "timestamp": "2024-01-03 11:00:00",
             "is_mention": 0,
-            "thread_id": "docs_001"
+            "thread_id": "docs_001",
         },
         {
             "id": "slack_010",
@@ -413,31 +428,41 @@ def create_slack_database():
             "message": "New Year promotion is live! Check out our latest features 🚀",
             "timestamp": "2024-01-03 14:00:00",
             "is_mention": 0,
-            "thread_id": "promo_001"
-        }
+            "thread_id": "promo_001",
+        },
     ]
-    
+
     for message in messages:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR IGNORE INTO messages (custom_id, channel, user, message, timestamp, is_mention, thread_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            message["id"], message["channel"], message["user"], message["message"], message["timestamp"],
-            message["is_mention"], message["thread_id"]
-        ))
-    
+        """,
+            (
+                message["id"],
+                message["channel"],
+                message["user"],
+                message["message"],
+                message["timestamp"],
+                message["is_mention"],
+                message["thread_id"],
+            ),
+        )
+
     conn.commit()
     conn.close()
 
+
 def main():
     """Main function to create all databases for Test Case 1"""
-    
+
     # Create databases directory if it doesn't exist
     os.makedirs("data/databases", exist_ok=True)
-    
+
     create_email_database()
     create_calendar_database()
     create_slack_database()
+
 
 if __name__ == "__main__":
     main()

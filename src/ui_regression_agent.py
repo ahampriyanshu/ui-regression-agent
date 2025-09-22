@@ -1,108 +1,134 @@
 import base64
-import json
 import os
 import re
-from typing import Dict, List
-
-from src import llm
+from typing import Dict
+import json
 from utils.logger import ui_logger
 
 
 class UIRegressionAgent:
-    """Agent responsible for comparing screenshots and detecting UI differences using LLM"""
-    
+    """Agent responsible for comparing screenshots and detecting UI differences
+    using LLM"""
+
     def __init__(self):
         """Initialize the UI regression agent"""
         self.logger = ui_logger
         self.ui_regression_prompt = self._load_ui_regression_prompt()
-    
+
     def _load_ui_regression_prompt(self) -> str:
         """Load the UI regression prompt from file"""
         try:
-            prompt_path = os.path.join(os.path.dirname(__file__), '..', 'prompts', 'ui_regression.txt')
-            with open(prompt_path, 'r', encoding='utf-8') as f:
+            prompt_path = os.path.join(
+                os.path.dirname(__file__), "..", "prompts", "ui_regression.txt"
+            )
+            with open(prompt_path, "r", encoding="utf-8") as f:
                 return f.read().strip()
         except FileNotFoundError:
-            return "Compare the baseline and updated screenshots for UI differences."
-    
+            return (
+                "Compare the baseline and updated screenshots for "
+                "UI differences."
+            )
+
     def encode_image_to_base64(self, image_path: str) -> str:
         """Encode image to base64 for LLM processing"""
         try:
             with open(image_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode('utf-8')
-        except Exception as e:
-            self.logger.logger.error(f"Error encoding image {image_path}: {e}")
+                return base64.b64encode(image_file.read()).decode("utf-8")
+        except (IOError, OSError) as e:
+            self.logger.logger.error(
+                "Error encoding image %s: %s", image_path, e
+            )
             return ""
-    
-    async def compare_screenshots(self, baseline_path: str, updated_path: str) -> Dict:
+
+    async def compare_screenshots(
+        self, baseline_path: str, updated_path: str
+    ) -> Dict:
         """Compare two screenshots and identify differences using LLM"""
-        self.logger.logger.info(f"Comparing screenshots: {baseline_path} vs {updated_path}")
-        
+        self.logger.logger.info(
+            "Comparing screenshots: %s vs %s", baseline_path, updated_path
+        )
+
         baseline_b64 = self.encode_image_to_base64(baseline_path)
         updated_b64 = self.encode_image_to_base64(updated_path)
-        
+
         if not baseline_b64 or not updated_b64:
             self.logger.logger.error("Failed to encode one or both images")
             raise ValueError("Failed to encode images for comparison")
-        
+
         if not os.getenv("OPENAI_API_KEY"):
             raise ValueError(
-                "OpenAI API key is required for UI comparison. Please set environment variables:\n"
+                "OpenAI API key is required for UI comparison. "
+                "Please set environment variables:\n"
                 "OPENAI_API_KEY=your_api_key\n"
                 "OPENAI_API_BASE=https://api.openai.com/v1 (optional)\n"
-                "Example: OPENAI_API_KEY=sk-your-key python app.py baseline.png updated.png"
+                "Example: OPENAI_API_KEY=sk-your-key python app.py "
+                "baseline.png updated.png"
             )
-        
-        # Create vision-enabled prompt with images  
+
+        # Create vision-enabled prompt with images
         from llama_index.core.schema import ImageDocument
-        
+
         baseline_doc = ImageDocument(image_path=baseline_path)
         updated_doc = ImageDocument(image_path=updated_path)
-        
+
         prompt = self.ui_regression_prompt
-        
+
         self.logger.logger.info("Sending request to LLM for image comparison")
-        
+
         try:
             # Use the vision capabilities by including image documents
             from llama_index.multi_modal_llms.openai import OpenAIMultiModal
-            multimodal_llm = OpenAIMultiModal(model="gpt-4o", max_new_tokens=4096)
-            
-            response = await multimodal_llm.acomplete(
-                prompt=prompt,
-                image_documents=[baseline_doc, updated_doc]
+
+            multimodal_llm = OpenAIMultiModal(
+                model="gpt-4o", max_new_tokens=4096
             )
-            
-            self.logger.logger.info(f"Received LLM response: {response.text}")
-            
+
+            response = await multimodal_llm.acomplete(
+                prompt=prompt, image_documents=[baseline_doc, updated_doc]
+            )
+
+            self.logger.logger.info("Received LLM response: %s", response.text)
+
             try:
                 differences_data = json.loads(response.text)
-                self.logger.logger.info("Successfully parsed LLM response as JSON")
+                self.logger.logger.info(
+                    "Successfully parsed LLM response as JSON"
+                )
                 return differences_data
             except json.JSONDecodeError as e:
-                self.logger.logger.warning(f"JSON decode error: {e}")
-                
-                markdown_json_match = re.search(r'```json\s*(\{.*?\})\s*```', response.text, re.DOTALL)
+                self.logger.logger.warning("JSON decode error: %s", e)
+
+                markdown_json_match = re.search(
+                    r"```json\s*(\{.*?\})\s*```", response.text, re.DOTALL
+                )
                 if markdown_json_match:
                     try:
-                        differences_data = json.loads(markdown_json_match.group(1))
-                        self.logger.logger.info("Successfully extracted JSON from markdown")
+                        differences_data = json.loads(
+                            markdown_json_match.group(1)
+                        )
+                        self.logger.logger.info(
+                            "Successfully extracted JSON from markdown"
+                        )
                         return differences_data
                     except json.JSONDecodeError:
                         pass
-                
-                json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+
+                json_match = re.search(r"\{.*\}", response.text, re.DOTALL)
                 if json_match:
                     try:
                         differences_data = json.loads(json_match.group())
-                        self.logger.logger.info("Successfully extracted JSON using regex")
+                        self.logger.logger.info(
+                            "Successfully extracted JSON using regex"
+                        )
                         return differences_data
                     except json.JSONDecodeError:
                         pass
-                
+
                 self.logger.logger.error("No valid JSON found in LLM response")
-                raise ValueError("LLM response does not contain valid JSON")
-                
+                raise ValueError(
+                    "LLM response does not contain valid JSON"
+                ) from e
+
         except Exception as e:
-            self.logger.logger.error(f"LLM analysis failed: {e}")
+            self.logger.logger.error("LLM analysis failed: %s", e)
             raise
