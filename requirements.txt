@@ -1,6 +1,7 @@
 fastapi[standard]==0.115.6
 llama-index==0.12.6
 llama-index-llms-openai==0.3.11
+llama-index-multi-modal-llms-openai
 pytest==8.4.0
 pytest-asyncio==1.0.0
 pytest-xdist==3.7.0

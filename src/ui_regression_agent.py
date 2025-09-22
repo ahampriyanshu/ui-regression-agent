@@ -51,41 +51,93 @@ class UIRegressionAgent:
         prompt = f"""
         {self.ui_regression_prompt}
         
-        Please analyze these two screenshots:
-        1. Baseline image (what the UI should look like)
-        2. Updated image (what the UI currently looks like)
+        Please analyze these two screenshots for UI differences:
         
-        Identify any differences between them and return your response as a JSON object with this structure:
+        BASELINE IMAGE: The first image shows what the UI should look like
+        UPDATED IMAGE: The second image shows the current state of the UI
+        
+        Compare these images carefully and identify any visual differences including:
+        - Text changes, additions, or removals
+        - Button color, size, or position changes  
+        - Input field modifications
+        - Layout shifts or spacing changes
+        - New or missing UI elements
+        - Color or styling differences
+        
+        Return your response as a JSON object with this structure:
         {{
             "differences": [
                 {{
                     "element_type": "text|button|input|image|layout",
                     "change_description": "describe what changed",
                     "location": "where on the page this element is located",
-                    "severity": "critical|minor|cosmetic",
+                    "severity": "critical|minor|cosmetic", 
                     "details": "additional details about the change"
                 }}
             ]
         }}
         
         If no differences are found, return: {{"differences": []}}
+        
+        Be thorough - even small changes matter for UI regression testing.
         """
         
         self.logger.logger.info("Sending request to LLM for image comparison")
         
         try:
-            response = await llm.acomplete(prompt)
+            # Use OpenAI client directly for vision capabilities
+            import openai
+            from openai import AsyncOpenAI
             
-            self.logger.logger.info(f"Received LLM response: {response.text[:200]}...")
+            client = AsyncOpenAI()
+            
+            # Read and encode images
+            import base64
+            
+            with open(baseline_path, "rb") as f:
+                baseline_b64 = base64.b64encode(f.read()).decode('utf-8')
+            
+            with open(updated_path, "rb") as f:
+                updated_b64 = base64.b64encode(f.read()).decode('utf-8')
+            
+            response = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{baseline_b64}",
+                                    "detail": "high"
+                                }
+                            },
+                            {
+                                "type": "image_url", 
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{updated_b64}",
+                                    "detail": "high"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=4096
+            )
+            
+            response_text = response.choices[0].message.content
+            self.logger.logger.info(f"Received LLM response: {response_text[:200]}...")
             
             try:
-                differences_data = json.loads(response.text)
+                differences_data = json.loads(response_text)
                 self.logger.logger.info("Successfully parsed LLM response as JSON")
                 return differences_data
             except json.JSONDecodeError as e:
                 self.logger.logger.warning(f"JSON decode error: {e}")
                 
-                markdown_json_match = re.search(r'```json\s*(\{.*?\})\s*```', response.text, re.DOTALL)
+                markdown_json_match = re.search(r'```json\s*(\{.*?\})\s*```', response_text, re.DOTALL)
                 if markdown_json_match:
                     try:
                         differences_data = json.loads(markdown_json_match.group(1))
@@ -94,7 +146,7 @@ class UIRegressionAgent:
                     except json.JSONDecodeError:
                         pass
                 
-                json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                 if json_match:
                     try:
                         differences_data = json.loads(json_match.group())

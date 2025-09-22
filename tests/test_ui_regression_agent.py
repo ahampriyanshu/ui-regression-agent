@@ -8,19 +8,25 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from main import MainOrchestrator
+from app import run_regression_test
+from src.ui_regression_agent import UIRegressionAgent
+from src.classification_agent import ClassificationAgent
+from src.orchestrator_agent import OrchestratorAgent
+
 class TestUIRegressionAgent(unittest.TestCase):
     """Test cases for UI Regression Agent"""
     
     def setUp(self):
         """Set up test fixtures"""
-        self.orchestrator = MainOrchestrator()
+        self.ui_agent = UIRegressionAgent()
+        self.classification_agent = ClassificationAgent()
+        self.orchestrator_agent = OrchestratorAgent()
         self.test_dir = tempfile.mkdtemp()
         
         async def reset_jira_state():
             from mcp_servers.jira_server import JIRAIntegration
-            self.orchestrator.classification_agent.jira = JIRAIntegration()
-            all_tickets = await self.orchestrator.classification_agent.jira.get_all_tickets()
+            self.classification_agent.jira = JIRAIntegration()
+            all_tickets = await self.classification_agent.jira.get_all_tickets()
             return all_tickets
         
         import asyncio
@@ -33,17 +39,23 @@ class TestUIRegressionAgent(unittest.TestCase):
     
     def test_agent_initialization(self):
         """Test agent initialization"""
-        self.assertIsNotNone(self.orchestrator)
-        self.assertIsNotNone(self.orchestrator.classification_agent.jira)
-        self.assertIsNotNone(self.orchestrator.logger)
+        self.assertIsNotNone(self.ui_agent)
+        self.assertIsNotNone(self.classification_agent)
+        self.assertIsNotNone(self.orchestrator_agent)
+        self.assertIsNotNone(self.classification_agent.jira)
     
-    @patch('src.ui_regression_agent.llm')
+    @patch('openai.AsyncOpenAI')
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test_key'})
-    def test_compare_screenshots_mock(self, mock_llm):
-        """Test screenshot comparison with mocked LLM"""
+    def test_compare_screenshots_mock(self, mock_openai_class):
+        """Test screenshot comparison with mocked OpenAI client"""
 
+        # Mock the OpenAI client and response
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
+        
         mock_response = MagicMock()
-        mock_response.text = json.dumps({
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = json.dumps({
             "differences": [
                 {
                     "element_type": "button",
@@ -51,10 +63,10 @@ class TestUIRegressionAgent(unittest.TestCase):
                     "location": "center",
                     "severity": "low"
                 }
-            ],
-            "summary": "Changes detected"
+            ]
         })
-        mock_llm.acomplete = AsyncMock(return_value=mock_response)
+        
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
         
 
         async def run_test():
@@ -70,7 +82,7 @@ class TestUIRegressionAgent(unittest.TestCase):
             with open(updated_path, 'wb') as f:
                 f.write(b"fake image data")
             
-            result = await self.orchestrator.ui_agent.compare_screenshots(baseline_path, updated_path)
+            result = await self.ui_agent.compare_screenshots(baseline_path, updated_path)
             return result
         
         result = asyncio.run(run_test())
@@ -126,7 +138,7 @@ class TestUIRegressionAgent(unittest.TestCase):
         }
         
         async def run_test():
-            result = await self.orchestrator.orchestrator_agent.validate_actions(results)
+            result = await self.orchestrator_agent.validate_actions(results)
             return result
         
         result = asyncio.run(run_test())
@@ -140,18 +152,18 @@ class TestUIRegressionAgent(unittest.TestCase):
         """Test that JIRA ticket statuses are updated correctly using MCP server calls"""
         async def run_test():
 
-            ui_002_initial = await self.orchestrator.classification_agent.jira.get_ticket("UI-002")
-            ui_001_initial = await self.orchestrator.classification_agent.jira.get_ticket("UI-001")
+            ui_002_initial = await self.classification_agent.jira.get_ticket("UI-002")
+            ui_001_initial = await self.classification_agent.jira.get_ticket("UI-001")
             self.assertEqual(ui_002_initial["status"], "In Review")
             self.assertEqual(ui_001_initial["status"], "In Review")
             
 
-            await self.orchestrator.classification_agent.jira.update_ticket_status("UI-002", "Done")
-            await self.orchestrator.classification_agent.jira.update_ticket_status("UI-001", "Changes Requested")
+            await self.classification_agent.jira.update_ticket_status("UI-002", "Done")
+            await self.classification_agent.jira.update_ticket_status("UI-001", "Changes Requested")
             
 
-            ui_002_updated = await self.orchestrator.classification_agent.jira.get_ticket("UI-002")
-            ui_001_updated = await self.orchestrator.classification_agent.jira.get_ticket("UI-001")
+            ui_002_updated = await self.classification_agent.jira.get_ticket("UI-002")
+            ui_001_updated = await self.classification_agent.jira.get_ticket("UI-001")
             
             self.assertEqual(ui_002_updated["status"], "Done")
             self.assertEqual(ui_001_updated["status"], "Changes Requested")
@@ -167,7 +179,7 @@ class TestUIRegressionAgent(unittest.TestCase):
     def test_new_ticket_assignment(self):
         """Test that new tickets are assigned correctly"""
         async def run_test():
-            ticket = await self.orchestrator.classification_agent.jira.create_ticket(
+            ticket = await self.classification_agent.jira.create_ticket(
                 title="Test Critical Issue",
                 description="This is a test critical issue",
                 priority="High",
@@ -188,14 +200,14 @@ class TestUIRegressionAgent(unittest.TestCase):
         """Test that initial tickets have correct assignments using MCP server calls"""
         async def run_test():
 
-            all_tickets = await self.orchestrator.classification_agent.jira.get_all_tickets()
+            all_tickets = await self.classification_agent.jira.get_all_tickets()
             
 
             self.assertGreaterEqual(len(all_tickets), 4)
             
 
             for ticket_id in ["UI-001", "UI-002", "UI-003", "UI-004"]:
-                ticket = await self.orchestrator.classification_agent.jira.get_ticket(ticket_id)
+                ticket = await self.classification_agent.jira.get_ticket(ticket_id)
                 self.assertIsNotNone(ticket, f"Ticket {ticket_id} should exist")
                 self.assertEqual(ticket["assignee"], "frontend.dev")
                 self.assertEqual(ticket["status"], "In Review")
@@ -217,7 +229,7 @@ class TestUIRegressionAgent(unittest.TestCase):
                 f.write("fake image data")
             
             try:
-                result = await self.orchestrator.run_regression_test(baseline_path, updated_path)
+                result = await run_regression_test(baseline_path, updated_path)
                 
 
                 self.assertIn("status", result)
@@ -233,10 +245,10 @@ class TestUIRegressionAgent(unittest.TestCase):
                     self.assertIn("actions_taken", result)
                     
 
-                    ui_002 = await self.orchestrator.classification_agent.jira.get_ticket("UI-002")
+                    ui_002 = await self.classification_agent.jira.get_ticket("UI-002")
                     self.assertIsNotNone(ui_002)
                     
-                    new_tickets = await self.orchestrator.classification_agent.jira.get_tickets_by_status("Todo")
+                    new_tickets = await self.classification_agent.jira.get_tickets_by_status("Todo")
                     for ticket in new_tickets:
                         if ticket["id"].startswith("UI-0") and int(ticket["id"].split("-")[1]) >= 5:
                             self.assertEqual(ticket["assignee"], "frontend.dev")
