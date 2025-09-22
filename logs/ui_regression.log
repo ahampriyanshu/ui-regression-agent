@@ -1,0 +1,90 @@
+2025-09-22 09:05:53,555 - ui_regression - ERROR - Action validation failed: minor_issue_logged
+2025-09-22 09:05:53,558 - ui_regression - INFO - Comparing screenshots: baseline.png vs updated.png
+2025-09-22 09:05:53,558 - ui_regression - ERROR - Error encoding image baseline.png: [Errno 2] No such file or directory: 'baseline.png'
+2025-09-22 09:05:53,558 - ui_regression - ERROR - Error encoding image updated.png: [Errno 2] No such file or directory: 'updated.png'
+2025-09-22 09:41:09,509 - ui_regression - INFO - Starting UI regression test
+2025-09-22 09:41:09,509 - ui_regression - INFO - Comparing screenshots: screenshots/login_baseline.png vs screenshots/login_updated.png
+2025-09-22 09:41:24,770 - ui_regression - ERROR - Error comparing screenshots: Connection error.
+2025-09-22 09:41:24,770 - ui_regression - INFO - No differences found - test passed
+2025-09-22 09:45:33,638 - ui_regression - INFO - Starting UI regression test
+2025-09-22 09:45:33,639 - ui_regression - INFO - Comparing screenshots: screenshots/login_baseline.png vs screenshots/login_updated.png
+2025-09-22 09:45:48,553 - ui_regression - ERROR - Error comparing screenshots: Connection error.
+2025-09-22 09:45:48,554 - ui_regression - INFO - No differences found - test passed
+2025-09-22 09:50:11,629 - ui_regression - INFO - Starting UI regression test
+2025-09-22 09:50:11,629 - ui_regression - INFO - Comparing screenshots: screenshots/login_baseline.png vs screenshots/login_updated.png
+2025-09-22 09:50:12,956 - ui_regression - ERROR - Error comparing screenshots: <html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx</center>
+</body>
+</html>
+2025-09-22 09:50:12,957 - ui_regression - INFO - No differences found - test passed
+2025-09-22 09:51:11,331 - ui_regression - INFO - Starting UI regression test
+2025-09-22 09:51:11,331 - ui_regression - INFO - Comparing screenshots: screenshots/login_baseline.png vs screenshots/login_updated.png
+2025-09-22 09:51:22,314 - ui_regression - ERROR - Error comparing screenshots: Expecting value: line 1 column 1 (char 0)
+2025-09-22 09:51:22,315 - ui_regression - INFO - No differences found - test passed
+2025-09-22 09:52:51,787 - ui_regression - INFO - Starting UI regression test
+2025-09-22 09:52:51,787 - ui_regression - INFO - Comparing screenshots: screenshots/login_baseline.png vs screenshots/login_updated.png
+2025-09-22 09:53:06,339 - ui_regression - ERROR - Error comparing screenshots: Connection error.
+2025-09-22 09:53:06,339 - ui_regression - INFO - No differences found - test passed
+2025-09-22 09:54:23,257 - ui_regression - INFO - Starting UI regression test
+2025-09-22 09:54:23,257 - ui_regression - INFO - Comparing screenshots: screenshots/login_baseline.png vs screenshots/login_updated.png
+2025-09-22 09:54:23,257 - ui_regression - INFO - No OpenAI API key found, using demo mode with mock data
+2025-09-22 09:54:23,257 - ui_regression - INFO - Analyzing differences against JIRA tickets
+2025-09-22 09:54:23,257 - ui_regression - INFO - No OpenAI API key found, using demo mode for JIRA analysis
+2025-09-22 09:54:23,257 - ui_regression - INFO - UI Regression Analysis completed: 4 differences found
+2025-09-22 09:54:23,258 - ui_regression - INFO - Detailed analysis saved to: logs/analysis_2025-09-22T09-54-23.257833.json
+2025-09-22 09:54:23,258 - ui_regression - WARNING - Minor UI issue detected: Unknown
+2025-09-22 09:54:23,258 - ui_regression - INFO - Minor issue logged to: logs/minor_issues.jsonl
+2025-09-22 09:54:23,258 - ui_regression - INFO - Expected UI change confirmed: Unknown
+2025-09-22 09:54:23,258 - ui_regression - INFO - Matches JIRA ticket: UI-002
+2025-09-22 09:54:23,258 - ui_regression - INFO - Creating JIRA ticket for critical issue
+2025-09-22 09:54:36,694 - ui_regression - ERROR - Error creating JIRA ticket: Connection error.
+2025-09-22 09:54:36,695 - ui_regression - INFO - Creating JIRA ticket for critical issue
+2025-09-22 09:54:50,633 - ui_regression - ERROR - Error creating JIRA ticket: Connection error.
+2025-09-22 09:54:50,634 - ui_regression - INFO - Action validation successful: minor_issue_logged
+2025-09-22 09:54:50,636 - ui_regression - INFO - UI regression test completed successfully
+2025-09-22 09:55:14,845 - ui_regression - INFO - Starting UI regression test
+2025-09-22 09:55:14,845 - ui_regression - INFO - Comparing screenshots: screenshots/login_baseline.png vs screenshots/login_updated.png
+2025-09-22 09:55:14,845 - ui_regression - INFO - No OpenAI API key found, using demo mode with mock data
+2025-09-22 09:55:14,845 - ui_regression - INFO - Analyzing differences against JIRA tickets
+2025-09-22 09:55:14,845 - ui_regression - INFO - No OpenAI API key found, using demo mode for JIRA analysis
+2025-09-22 09:55:14,845 - ui_regression - INFO - UI Regression Analysis completed: 4 differences found
+2025-09-22 09:55:14,845 - ui_regression - INFO - Detailed analysis saved to: logs/analysis_2025-09-22T09-55-14.845712.json
+2025-09-22 09:55:14,845 - ui_regression - WARNING - Minor UI issue detected: Unknown
+2025-09-22 09:55:14,846 - ui_regression - INFO - Minor issue logged to: logs/minor_issues.jsonl
+2025-09-22 09:55:14,846 - ui_regression - INFO - Expected UI change confirmed: Unknown
+2025-09-22 09:55:14,846 - ui_regression - INFO - Matches JIRA ticket: UI-002
+2025-09-22 09:55:14,846 - ui_regression - INFO - Creating JIRA ticket for critical issue
+2025-09-22 09:55:14,846 - ui_regression - INFO - JIRA ticket created: UI-005
+2025-09-22 09:55:14,846 - ui_regression - ERROR - Critical UI issue detected: Unknown
+2025-09-22 09:55:14,846 - ui_regression - INFO - JIRA ticket created: UI-005
+2025-09-22 09:55:14,846 - ui_regression - INFO - Critical issue logged to: logs/critical_issues.jsonl
+2025-09-22 09:55:14,846 - ui_regression - INFO - Creating JIRA ticket for critical issue
+2025-09-22 09:55:14,846 - ui_regression - INFO - JIRA ticket created: UI-006
+2025-09-22 09:55:14,846 - ui_regression - ERROR - Critical UI issue detected: Unknown
+2025-09-22 09:55:14,846 - ui_regression - INFO - JIRA ticket created: UI-006
+2025-09-22 09:55:14,846 - ui_regression - INFO - Critical issue logged to: logs/critical_issues.jsonl
+2025-09-22 09:55:14,846 - ui_regression - INFO - Action validation successful: minor_issue_logged
+2025-09-22 09:55:14,847 - ui_regression - INFO - Action validation successful: jira_ticket_created
+2025-09-22 09:55:14,847 - ui_regression - INFO - Action validation successful: jira_ticket_created
+2025-09-22 09:55:14,848 - ui_regression - INFO - UI regression test completed successfully
+2025-09-22 09:56:42,376 - ui_regression - INFO - Starting UI regression test
+2025-09-22 09:56:42,377 - ui_regression - INFO - Comparing screenshots: screenshots/login_baseline.png vs screenshots/login_updated.png
+2025-09-22 09:56:49,419 - ui_regression - INFO - Found 5 differences
+2025-09-22 09:56:49,420 - ui_regression - INFO - Analyzing differences against JIRA tickets
+2025-09-22 09:56:54,469 - ui_regression - WARNING - Could not parse JIRA analysis response, using mock data for demo
+2025-09-22 09:56:54,469 - ui_regression - INFO - JIRA analysis completed
+2025-09-22 09:56:54,469 - ui_regression - INFO - UI Regression Analysis completed: 5 differences found
+2025-09-22 09:56:54,470 - ui_regression - INFO - Detailed analysis saved to: logs/analysis_2025-09-22T09-56-54.469430.json
+2025-09-22 09:56:54,470 - ui_regression - WARNING - Minor UI issue detected: Unknown
+2025-09-22 09:56:54,470 - ui_regression - INFO - Minor issue logged to: logs/minor_issues.jsonl
+2025-09-22 09:56:54,471 - ui_regression - INFO - Expected UI change confirmed: Unknown
+2025-09-22 09:56:54,471 - ui_regression - INFO - Matches JIRA ticket: UI-002
+2025-09-22 09:56:54,471 - ui_regression - INFO - Creating JIRA ticket for critical issue
+2025-09-22 09:56:57,926 - ui_regression - ERROR - Error creating JIRA ticket: Expecting value: line 1 column 1 (char 0)
+2025-09-22 09:56:57,926 - ui_regression - INFO - Creating JIRA ticket for critical issue
+2025-09-22 09:57:01,249 - ui_regression - ERROR - Error creating JIRA ticket: Expecting value: line 1 column 1 (char 0)
+2025-09-22 09:57:01,250 - ui_regression - INFO - Action validation successful: minor_issue_logged
+2025-09-22 09:57:01,253 - ui_regression - INFO - UI regression test completed successfully
