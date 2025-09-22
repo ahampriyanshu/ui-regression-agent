@@ -199,7 +199,7 @@ def streamlit_interface():
             st.image(
                 baseline_image,
                 caption="Baseline Screenshot",
-                use_column_width=True,
+                use_container_width=True,
             )
 
     with col2:
@@ -213,7 +213,7 @@ def streamlit_interface():
             st.image(
                 updated_image,
                 caption="Updated Screenshot",
-                use_column_width=True,
+                use_container_width=True,
             )
 
     if not baseline_file or not updated_file:
@@ -222,8 +222,8 @@ def streamlit_interface():
         )
 
         if st.button("🎯 Use Default Screenshots"):
-            baseline_path = "screenshots/login_baseline.png"
-            updated_path = "screenshots/login_updated.png"
+            baseline_path = "screenshots/baseline.png"
+            updated_path = "screenshots/updated.png"
 
             if os.path.exists(baseline_path) and os.path.exists(updated_path):
                 st.success("✅ Using default screenshots")
@@ -233,13 +233,13 @@ def streamlit_interface():
                     st.image(
                         baseline_path,
                         caption="Default Baseline",
-                        use_column_width=True,
+                        use_container_width=True,
                     )
                 with col2:
                     st.image(
                         updated_path,
                         caption="Default Updated",
-                        use_column_width=True,
+                        use_container_width=True,
                     )
 
                 st.session_state.baseline_path = baseline_path

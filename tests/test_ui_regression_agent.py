@@ -5,7 +5,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
-
+from mcp_servers.jira import JIRAMCPServer
 from PIL import Image
 from src.orchestrator_agent import OrchestratorAgent
 from src.classification_agent import ClassificationAgent
@@ -26,9 +26,8 @@ class TestUIRegressionAgent(unittest.TestCase):
         self.test_dir = tempfile.mkdtemp()
 
         async def reset_jira_state():
-            from mcp_servers.jira_server import JIRAIntegration
 
-            self.classification_agent.jira = JIRAIntegration()
+            self.classification_agent.jira = JIRAMCPServer()
             all_tickets = (
                 await self.classification_agent.jira.get_all_tickets()
             )

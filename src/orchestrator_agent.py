@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from mcp_servers.jira_server import JIRAIntegration
+from mcp_servers.jira import JIRAMCPServer
 from utils.logger import ui_logger
 
 
@@ -8,7 +8,7 @@ class OrchestratorAgent:
     """Agent responsible for executing actions based on classification results"""
 
     def __init__(self):
-        self.jira = JIRAIntegration()
+        self.jira = JIRAMCPServer()
         self.logger = ui_logger
 
     async def update_resolved_tickets(

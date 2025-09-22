@@ -2,23 +2,26 @@ version: 1
 configuration:
   has_webserver: true
   scoring:
-    command: pip install -r requirements.txt && python src/mcp_servers/jira_server.py && python3 -m pytest src/test_agent.py --junit-xml=unit.xml
+    command: pip install -r requirements.txt && python mcp_servers/jira_server.py && python3 -m pytest src/test_agent.py --junit-xml=unit.xml
     files:
       - unit.xml
   ide_config:
-        default_open_files:
-          - app.py
-          - src/agent.py
-          - prompts/ui_regression.txt
-          - prompts/difference_analysis.txt
+    default_open_files:
+      - app.py
+      - prompts/ui_regression.txt
+      - prompts/difference_analysis.txt
     project_menu:
-      run: streamlit run app.py --server.port 8000
-      install: pip install -r requirements.txt
-      test: python src/mcp_servers/jira_server.py && python3 -m pytest src/test_agent.py --junit-xml=unit.xml
+        run: streamlit run app.py --server.port 8000
+        install: pip install -r requirements.txt
+        test: python mcp_servers/jira_server.py && python3 -m pytest src/test_agent.py --junit-xml=unit.xml
   readonly_paths:
-    - src/test_agent.py
     - src/__init__.py
-    - screenshots/login_baseline.png
-    - screenshots/login_updated.png
-    - src/mcp_servers/jira_server.py
+    - app.py
+    - README.md
+    - PROJECT_FILES_INSTRUCTIONS.md
+    - requirements.txt
+    - hackerrank.yml
+    - screenshots/baseline.png
+    - screenshots/updated.png
+    - mcp_servers/jira_server.py
     - src/utils/logger.py

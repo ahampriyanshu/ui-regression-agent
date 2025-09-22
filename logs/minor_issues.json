@@ -1,6 +1,6 @@
 [
   {
-    "timestamp": "2025-09-22T21:05:01.013987",
+    "timestamp": "2025-09-22T22:15:52.327671",
     "type": "MINOR_ISSUE",
     "issue": {
       "title": "Register button text changed to Sign Up",
@@ -11,24 +11,24 @@
     }
   },
   {
-    "timestamp": "2025-09-22T21:05:01.015961",
+    "timestamp": "2025-09-22T22:15:52.328574",
     "type": "MINOR_ISSUE",
     "issue": {
-      "title": "Forgot Password link position adjusted",
-      "description": "The 'Forgot Password' link has been moved slightly upwards, which is not covered by any existing JIRA ticket.",
-      "element_type": "text",
-      "location": "right of password input field",
+      "title": "Register link color changed",
+      "description": "The color of the Register link has been changed from blue to the default link color, which is not covered by any existing JIRA ticket.",
+      "element_type": "link",
+      "location": "below login button",
       "severity": "minor"
     }
   },
   {
-    "timestamp": "2025-09-22T21:05:01.016558",
+    "timestamp": "2025-09-22T22:15:52.329025",
     "type": "MINOR_ISSUE",
     "issue": {
-      "title": "Register link color changed",
-      "description": "The color of the Register link has been changed to a lighter blue with reduced opacity, which is not covered by any existing JIRA ticket.",
-      "element_type": "text",
-      "location": "below login button",
+      "title": "Forgot Password link text color changed",
+      "description": "The text color of the Forgot Password link has been changed from blue to the default link color, which is not covered by any existing JIRA ticket.",
+      "element_type": "link",
+      "location": "right side of password input field",
       "severity": "minor"
     }
   }

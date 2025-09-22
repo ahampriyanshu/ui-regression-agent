@@ -4,7 +4,7 @@ import re
 from typing import Dict, List
 
 from llama_index.llms.openai import OpenAI
-from mcp_servers.jira_server import JIRAIntegration
+from mcp_servers.jira import JIRAMCPServer
 from utils.logger import ui_logger
 
 
@@ -13,7 +13,7 @@ class ClassificationAgent:
     and classifying them"""
 
     def __init__(self):
-        self.jira = JIRAIntegration()
+        self.jira = JIRAMCPServer()
         self.logger = ui_logger
         self.analysis_prompt = self._load_analysis_prompt()
 
