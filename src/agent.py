@@ -106,6 +106,55 @@ class UIRegressionAgent:
             "recommended_actions": ["log_minor_issue", "file_jira_for_signup_change", "file_jira_for_header_positioning"]
         }
     
+    def _create_fallback_ticket_data(self, issue_details: Dict) -> Dict:
+        """Create fallback ticket data when LLM parsing fails"""
+        change_desc = issue_details.get("change_description", "UI regression detected")
+        reasoning = issue_details.get("reasoning", "Automated UI regression detection")
+        classification = issue_details.get("classification", "UNKNOWN")
+        
+        # Create a descriptive title
+        title = f"UI Regression: {change_desc}"
+        if len(title) > 100:
+            title = title[:97] + "..."
+        
+        # Create detailed description
+        description = f"""
+**Automated UI Regression Detection**
+
+**Issue Description:** {change_desc}
+
+**Analysis:** {reasoning}
+
+**Classification:** {classification}
+
+**Detection Details:**
+- Element Type: {issue_details.get('element_type', 'Unknown')}
+- Location: {issue_details.get('location', 'Unknown')}
+- Severity: {issue_details.get('severity', 'Unknown')}
+
+**JIRA Match Status:** {issue_details.get('jira_match', 'No matching ticket found')}
+
+**Recommended Action:** Manual review and resolution required.
+
+*This ticket was automatically created by the UI Regression Detection Agent.*
+        """.strip()
+        
+        # Determine priority based on classification
+        priority_map = {
+            "CRITICAL": "High",
+            "MAJOR": "High", 
+            "MINOR": "Medium",
+            "LOW": "Low"
+        }
+        priority = priority_map.get(classification, "Medium")
+        
+        return {
+            "title": title,
+            "description": description,
+            "priority": priority,
+            "type": "Bug"
+        }
+    
     def encode_image_to_base64(self, image_path: str) -> str:
         """Encode image to base64 for LLM processing"""
         try:
@@ -236,7 +285,25 @@ class UIRegressionAgent:
             )
             
             response = await llm.acomplete(prompt)
-            ticket_data = json.loads(response.text)
+            
+            # Try to parse the JSON response with better error handling
+            try:
+                ticket_data = json.loads(response.text)
+            except json.JSONDecodeError:
+                # If JSON parsing fails, try to extract JSON from the response
+                import re
+                json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+                if json_match:
+                    try:
+                        ticket_data = json.loads(json_match.group())
+                    except json.JSONDecodeError:
+                        # If still fails, create ticket with fallback data
+                        self.logger.logger.warning("Could not parse LLM ticket response, using fallback data")
+                        ticket_data = self._create_fallback_ticket_data(issue_details)
+                else:
+                    # No JSON found, use fallback
+                    self.logger.logger.warning("No JSON found in LLM response, using fallback data")
+                    ticket_data = self._create_fallback_ticket_data(issue_details)
             
             # Create the ticket via JIRA integration
             new_ticket = await self.jira.create_ticket(

@@ -89,21 +89,23 @@ Issue Details:
 {issue_details}
 
 Generate a professional JIRA ticket with:
-- Clear, descriptive title
+- Clear, descriptive title (max 100 characters)
 - Detailed description of the issue
 - Steps to reproduce (if applicable)
 - Expected vs actual behavior
 - Priority level (Critical/High/Medium/Low)
 - Appropriate labels/tags
 
-Return in this JSON format:
+IMPORTANT: Return ONLY valid JSON in exactly this format, no additional text:
+
 {{
-  "title": "string",
-  "description": "string", 
-  "priority": "Critical|High|Medium|Low",
-  "type": "Bug|Regression",
-  "labels": ["list", "of", "tags"]
+  "title": "UI Regression: Brief description of the issue",
+  "description": "Detailed description with steps to reproduce and expected vs actual behavior",
+  "priority": "High",
+  "type": "Bug"
 }}
+
+Do not include any text before or after the JSON object.
 """
 
 TOOL_NAME = "jira_integration"
