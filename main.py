@@ -42,21 +42,26 @@ async def run_ui_regression_test(baseline_path: str, updated_path: str):
             summary = result['summary']
             print("\n📊 Summary Report:")
             print(f"  • Minor Issues: {summary['minor_issues']}")
-            print(f"  • Critical Issues: {summary['critical_issues']}")
-            print(f"  • Expected Changes: {summary['expected_changes']}")
-            print(f"  • Actions Taken: {summary['actions_taken']}")
             
-            # Show specific actions
-            if result['details']['actions']:
+            # Show specific actions from results
+            results = result['details']['results']
+            if any([results.get('resolved_tickets'), results.get('updated_tickets'), results.get('created_tickets'), results.get('minor_issues_logged', 0) > 0]):
                 print("\n🎯 Actions Taken:")
-                for action in result['details']['actions']:
-                    action_type = action['action']
-                    if action_type == 'jira_ticket_created':
-                        print(f"  • 🎫 JIRA Ticket Created: {action['ticket_id']}")
-                    elif action_type == 'minor_issue_logged':
-                        print(f"  • 📝 Minor Issue Logged")
-                    elif action_type == 'expected_change_confirmed':
-                        print(f"  • ✅ Expected Change Confirmed (JIRA: {action['jira_ticket']})")
+                
+                if results.get('resolved_tickets'):
+                    for ticket in results['resolved_tickets']:
+                        print(f"  • ✅ Ticket Resolved: {ticket['id']} (Status: Done)")
+                
+                if results.get('updated_tickets'):
+                    for ticket in results['updated_tickets']:
+                        print(f"  • 🔄 Ticket Updated: {ticket['id']} (Status: Changes Requested)")
+                
+                if results.get('created_tickets'):
+                    for ticket in results['created_tickets']:
+                        print(f"  • 🎫 JIRA Ticket Created: {ticket['id']}")
+                
+                if results.get('minor_issues_logged', 0) > 0:
+                    print(f"  • 📝 Minor Issues Logged: {results['minor_issues_logged']}")
         
         elif result['status'] == 'success':
             print(f"✅ {result['message']}")

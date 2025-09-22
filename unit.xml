@@ -1,1 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="7" time="1.309" timestamp="2025-09-22T11:33:39.393143" hostname="Priyanshu-Tiwari.local"><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_action_validation" time="0.002" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_agent_initialization" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_compare_screenshots_mock" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_expected_scenario_1_forgot_password_minor" time="0.000" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_expected_scenario_2_password_field_expected" time="0.000" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_expected_scenario_3_register_to_signup_critical" time="0.000" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_expected_scenario_4_header_positioning_critical" time="0.000" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="11" time="5.737" timestamp="2025-09-22T14:41:46.704136" hostname="Priyanshu-Tiwari.local"><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_action_validation" time="0.002" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_agent_initialization" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_compare_screenshots_mock" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_comprehensive_regression_workflow" time="4.230" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_expected_scenario_1_forgot_password_minor" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_expected_scenario_2_password_field_expected" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_expected_scenario_3_register_to_signup_critical" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_expected_scenario_4_header_positioning_critical" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_initial_ticket_assignments" time="0.001"><failure message="AssertionError: 'Changes Requested' != 'In Review'&#10;- Changes Requested&#10;+ In Review">self = &lt;src.test_agent.TestUIRegressionAgent testMethod=test_initial_ticket_assignments&gt;
+
+    def test_initial_ticket_assignments(self):
+        """Test that initial tickets have correct assignments"""
+        async def run_test():
+            all_tickets = await self.agent.jira.get_all_tickets()
+    
+            for ticket in all_tickets:
+                if ticket["id"] in ["UI-001", "UI-002", "UI-003", "UI-004"]:
+                    self.assertEqual(ticket["assignee"], "frontend.dev")
+                    self.assertEqual(ticket["status"], "In Review")
+                    self.assertEqual(ticket["reporter"], "product.manager")
+    
+            return all_tickets
+    
+&gt;       asyncio.run(run_test())
+
+src/test_agent.py:195: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/runners.py:190: in run
+    return runner.run(main)
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+src/test_agent.py:190: in run_test
+    self.assertEqual(ticket["status"], "In Review")
+E   AssertionError: 'Changes Requested' != 'In Review'
+E   - Changes Requested
+E   + In Review</failure></testcase><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_jira_status_updates" time="0.001" /><testcase classname="src.test_agent.TestUIRegressionAgent" name="test_new_ticket_assignment" time="0.001" /></testsuite></testsuites>

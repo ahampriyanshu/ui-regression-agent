@@ -1,8 +1,20 @@
+# Note: toolbarMode is not available in this Streamlit version
+# Using CSS and JavaScript approach instead to hide developer buttons
+
 [server]
+# Disable CORS for cleaner interface
 enableCORS = false
+
+# Disable XSRF protection for development
 enableXsrfProtection = false
-enableWebsocketCompression = false
 
 [browser]
-serverPort = 8000
-gatherUsageStats = true
+# Disable usage stats gathering
+gatherUsageStats = false
+
+[theme]
+# Custom dark theme colors
+primaryColor = "#4A89F3"
+backgroundColor = "#1A1D29"
+secondaryBackgroundColor = "#222736"
+textColor = "#FFFFFF"

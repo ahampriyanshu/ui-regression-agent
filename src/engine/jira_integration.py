@@ -15,49 +15,49 @@ JIRA_TICKETS = {
         "id": "UI-001",
         "title": "Add new href 'Forgot Password?'",
         "description": "Add a 'Forgot Password?' link below the login form for users who need to reset their password",
-        "status": "In Progress",
+        "status": "In Review",
         "priority": "Medium",
         "type": "Feature",
         "created": "2024-01-15T10:00:00Z",
         "updated": "2024-01-16T14:30:00Z",
-        "assignee": "john.doe@company.com",
-        "reporter": "product.manager@company.com"
+        "assignee": "frontend.dev",
+        "reporter": "product.manager"
     },
     "UI-002": {
         "id": "UI-002", 
         "title": "Change the input field for password from type text to password",
         "description": "Update the password input field to use type='password' for security and add an eye icon to toggle visibility",
-        "status": "Done",
+        "status": "In Review",
         "priority": "High",
-        "type": "Bug Fix",
+        "type": "Feature",
         "created": "2024-01-10T09:00:00Z",
         "updated": "2024-01-18T16:45:00Z",
-        "assignee": "jane.smith@company.com",
-        "reporter": "security.team@company.com"
+        "assignee": "frontend.dev",
+        "reporter": "product.manager"
     },
     "UI-003": {
         "id": "UI-003",
         "title": "The 'Login' button would change from transparent to green",
         "description": "Update the Login button styling to use green background color instead of transparent for better visibility",
-        "status": "In Progress", 
+        "status": "In Review", 
         "priority": "Low",
         "type": "Enhancement",
         "created": "2024-01-12T11:30:00Z",
         "updated": "2024-01-17T13:20:00Z",
-        "assignee": "ui.designer@company.com",
-        "reporter": "ux.team@company.com"
+        "assignee": "frontend.dev",
+        "reporter": "product.manager"
     },
     "UI-004": {
         "id": "UI-004",
         "title": "Add header at top with 'Home' href on extreme left and 'About' on the extreme right",
         "description": "Create a new header component with navigation links - 'Home' positioned on the far left and 'About' positioned on the far right",
-        "status": "To Do",
+        "status": "In Review",
         "priority": "Medium", 
         "type": "Feature",
         "created": "2024-01-14T15:00:00Z",
         "updated": "2024-01-14T15:00:00Z",
-        "assignee": "frontend.dev@company.com",
-        "reporter": "product.manager@company.com"
+        "assignee": "frontend.dev",
+        "reporter": "product.manager"
     }
 }
 
@@ -120,13 +120,13 @@ class JIRAIntegration:
                 "id": ticket_id,
                 "title": title,
                 "description": description,
-                "status": "Open",
+                "status": "Todo",
                 "priority": priority,
                 "type": ticket_type,
                 "created": datetime.now().isoformat() + "Z",
                 "updated": datetime.now().isoformat() + "Z",
-                "assignee": "auto.assigned@company.com",
-                "reporter": "ui.regression.agent@company.com"
+                "assignee": "frontend.dev",
+                "reporter": "ui_regression.agent"
             }
             
             self.new_tickets[ticket_id] = new_ticket
@@ -138,12 +138,14 @@ class JIRAIntegration:
     async def update_ticket_status(self, ticket_id: str, status: str) -> Optional[Dict]:
         """Update the status of a JIRA ticket"""
         try:
-            all_tickets = {**self.tickets, **self.new_tickets}
-            
-            if ticket_id in all_tickets:
-                all_tickets[ticket_id]["status"] = status
-                all_tickets[ticket_id]["updated"] = datetime.now().isoformat() + "Z"
-                return all_tickets[ticket_id]
+            if ticket_id in self.tickets:
+                self.tickets[ticket_id]["status"] = status
+                self.tickets[ticket_id]["updated"] = datetime.now().isoformat() + "Z"
+                return self.tickets[ticket_id]
+            elif ticket_id in self.new_tickets:
+                self.new_tickets[ticket_id]["status"] = status
+                self.new_tickets[ticket_id]["updated"] = datetime.now().isoformat() + "Z"
+                return self.new_tickets[ticket_id]
             
             return None
         except Exception as e:
@@ -184,22 +186,40 @@ class JIRAIntegration:
     
     async def find_matching_tickets(self, ui_change_description: str) -> List[Dict]:
         """Find JIRA tickets that might match a UI change"""
-        # Try different search strategies
         search_terms = [
             ui_change_description,
-            # Extract key terms for broader search
             *ui_change_description.lower().split()
         ]
         
         matching_tickets = []
         for term in search_terms:
-            if len(term) > 3:  # Only search meaningful terms
+            if len(term) > 3:
                 tickets = await self.search_tickets(term)
                 for ticket in tickets:
                     if ticket not in matching_tickets:
                         matching_tickets.append(ticket)
         
         return matching_tickets
+    
+    async def update_ticket_status_based_on_analysis(self, analysis_results: List[Dict]) -> List[Dict]:
+        """Update ticket statuses based on regression analysis results"""
+        updated_tickets = []
+        
+        for result in analysis_results:
+            jira_match = result.get('jira_match')
+            classification = result.get('classification')
+            implementation_correct = result.get('implementation_correct', False)
+            
+            if jira_match and classification == 'EXPECTED':
+                if implementation_correct:
+                    ticket = await self.update_ticket_status(jira_match, 'Done')
+                else:
+                    ticket = await self.update_ticket_status(jira_match, 'Changes Requested')
+                
+                if ticket:
+                    updated_tickets.append(ticket)
+        
+        return updated_tickets
 
 
 # Create a query engine wrapper for the agent

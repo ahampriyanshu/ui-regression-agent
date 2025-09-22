@@ -123,7 +123,7 @@ def main():
                 # Display results
                 display_results(result)
                 
-    except Exception as e:
+            except Exception as e:
                 st.error(f"❌ Error during analysis: {e}")
 
 
@@ -245,7 +245,7 @@ def display_results(result):
                     st.warning(f"⚠️ **Minor Issue** - {item.get('reasoning', 'No reasoning')}")
                 elif classification == 'EXPECTED':
                     st.success(f"✅ **Expected Change** - {item.get('reasoning', 'No reasoning')}")
-else:
+                else:
                     st.info(f"ℹ️ **{classification}** - {item.get('reasoning', 'No reasoning')}")
                 
                 if item.get('jira_match'):

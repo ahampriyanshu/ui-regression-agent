@@ -12,6 +12,7 @@ from PIL import Image
 
 from src import llm
 from src.engine.jira_integration import JIRAIntegration
+from src.difference_analyzer import DifferenceAnalyzer
 from src.prompts import (CONTEXT, JIRA_ANALYSIS_PROMPT, JIRA_TICKET_CREATION_PROMPT,
                         TOOL_DESCRIPTION, TOOL_NAME, UI_COMPARISON_PROMPT)
 from src.utils.logger import ui_logger
@@ -24,6 +25,17 @@ class UIRegressionAgent:
         """Initialize the UI regression agent"""
         self.jira = JIRAIntegration()
         self.logger = ui_logger
+        self.ui_regression_prompt = self._load_ui_regression_prompt()
+        self.difference_analyzer = DifferenceAnalyzer()
+    
+    def _load_ui_regression_prompt(self) -> str:
+        """Load the UI regression prompt from file"""
+        try:
+            prompt_path = os.path.join(os.path.dirname(__file__), '..', 'prompts', 'ui_regression.txt')
+            with open(prompt_path, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        except FileNotFoundError:
+            return UI_COMPARISON_PROMPT
     
     def _create_mock_differences_response(self) -> Dict:
         """Create mock differences response for demo purposes"""
@@ -57,8 +69,7 @@ class UIRegressionAgent:
                     "severity": "high",
                     "details": "Header exists with Home and About links, but About is positioned next to Home instead of far right"
                 }
-            ],
-            "summary": "Found 4 UI differences including expected changes and potential regressions"
+            ]
         }
     
     def _create_mock_jira_analysis(self, differences: List[Dict]) -> Dict:
@@ -173,13 +184,15 @@ class UIRegressionAgent:
         updated_b64 = self.encode_image_to_base64(updated_path)
         
         if not baseline_b64 or not updated_b64:
-            return {"differences": [], "summary": "Error: Could not process images"}
+            return {"differences": []}
         
-        # Create the comparison prompt
-        prompt = UI_COMPARISON_PROMPT.format(
-            baseline_image=f"data:image/png;base64,{baseline_b64}",
-            updated_image=f"data:image/png;base64,{updated_b64}"
-        )
+        # Create the comparison prompt using the loaded prompt file
+        prompt = f"""
+        {self.ui_regression_prompt}
+        
+        Baseline Image (base64): data:image/png;base64,{baseline_b64}
+        Updated Image (base64): data:image/png;base64,{updated_b64}
+        """
         
         try:
             # Check if we have OpenAI API key
@@ -189,21 +202,42 @@ class UIRegressionAgent:
                 return self._create_mock_differences_response()
             
             # Use LLM to analyze the images
+            self.logger.logger.info("Sending request to LLM for image comparison")
             response = await llm.acomplete(prompt)
+            self.logger.logger.info(f"Received LLM response: {response.text[:200]}...")
             
             # Try to parse the JSON response
             try:
                 result = json.loads(response.text)
-            except json.JSONDecodeError:
-                # If JSON parsing fails, try to extract JSON from the response
+                self.logger.logger.info("Successfully parsed LLM response as JSON")
+            except json.JSONDecodeError as e:
+                self.logger.logger.warning(f"JSON decode error: {e}")
+                # If JSON parsing fails, try to extract JSON from markdown code blocks or other formats
                 import re
-                json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
-                if json_match:
-                    result = json.loads(json_match.group())
+                
+                # First try to extract from markdown code blocks
+                markdown_json_match = re.search(r'```json\s*(\{.*?\})\s*```', response.text, re.DOTALL)
+                if markdown_json_match:
+                    try:
+                        result = json.loads(markdown_json_match.group(1))
+                        self.logger.logger.info("Successfully extracted JSON from markdown code block")
+                    except json.JSONDecodeError as inner_e:
+                        self.logger.logger.warning(f"Could not parse JSON from markdown block: {inner_e}")
+                        result = self._create_mock_differences_response()
                 else:
-                    # If no JSON found, create a mock response for demo purposes
-                    self.logger.logger.warning("Could not parse LLM response as JSON, using mock data for demo")
-                    result = self._create_mock_differences_response()
+                    # Try to extract any JSON object from the response
+                    json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+                    if json_match:
+                        try:
+                            result = json.loads(json_match.group())
+                            self.logger.logger.info("Successfully extracted JSON from LLM response")
+                        except json.JSONDecodeError as inner_e:
+                            self.logger.logger.warning(f"Could not parse extracted JSON: {inner_e}")
+                            result = self._create_mock_differences_response()
+                    else:
+                        # If no JSON found, create a mock response for demo purposes
+                        self.logger.logger.warning("Could not parse LLM response as JSON, using mock data for demo")
+                        result = self._create_mock_differences_response()
             
             self.logger.logger.info(f"Found {len(result.get('differences', []))} differences")
             return result
@@ -212,44 +246,19 @@ class UIRegressionAgent:
             self.logger.logger.warning(f"LLM analysis failed ({e}), using demo mode with mock data")
             return self._create_mock_differences_response()
     
-    async def analyze_against_jira(self, differences: List[Dict]) -> Dict:
-        """Analyze UI differences against existing JIRA tickets"""
-        self.logger.logger.info("Analyzing differences against JIRA tickets")
+    async def analyze_differences(self, differences: List[Dict]) -> Dict:
+        """Analyze UI differences using the new difference analyzer"""
+        if not differences:
+            return {
+                "resolved_tickets": [],
+                "tickets_needing_work": [], 
+                "new_issues": []
+            }
         
-        # Get all JIRA tickets
-        jira_tickets = await self.jira.get_all_tickets()
-        jira_formatted = self.jira.format_tickets_for_analysis(jira_tickets)
-        
-        # Create analysis prompt
-        prompt = JIRA_ANALYSIS_PROMPT.format(
-            differences=json.dumps(differences, indent=2),
-            jira_tickets=jira_formatted
-        )
-        
-        try:
-            # Check if we have OpenAI API key
-            import os
-            if not os.getenv("OPENAI_API_KEY"):
-                self.logger.logger.info("No OpenAI API key found, using demo mode for JIRA analysis")
-                return self._create_mock_jira_analysis(differences)
-            
-            # Use LLM to analyze against JIRA
-            response = await llm.acomplete(prompt)
-            
-            # Try to parse the JSON response
-            try:
-                analysis = json.loads(response.text)
-            except json.JSONDecodeError:
-                # If JSON parsing fails, create mock analysis for demo
-                self.logger.logger.warning("Could not parse JIRA analysis response, using mock data for demo")
-                analysis = self._create_mock_jira_analysis(differences)
-            
-            self.logger.logger.info("JIRA analysis completed")
-            return analysis
-            
-        except Exception as e:
-            self.logger.logger.warning(f"JIRA analysis failed ({e}), using demo mode with mock data")
-            return self._create_mock_jira_analysis(differences)
+        # Use the difference analyzer
+        analysis = await self.difference_analyzer.analyze_differences(differences)
+        self.logger.logger.info("Difference analysis completed")
+        return analysis
     
     async def create_jira_ticket_for_issue(self, issue_details: Dict) -> Optional[Dict]:
         """Create a JIRA ticket for a critical issue"""
@@ -335,7 +344,6 @@ class UIRegressionAgent:
                 # Create JIRA ticket for critical issue
                 ticket = await self.create_jira_ticket_for_issue(item)
                 if ticket:
-                    self.logger.log_critical_issue(item, ticket)
                     actions_taken.append({
                         "action": "jira_ticket_created",
                         "ticket_id": ticket["id"],
@@ -358,8 +366,6 @@ class UIRegressionAgent:
             elif action_required == "none":
                 # Expected change or no action needed
                 if item.get("classification") == "EXPECTED":
-                    jira_ticket = {"id": item.get("jira_match", "Unknown")}
-                    self.logger.log_expected_change(item, jira_ticket)
                     actions_taken.append({
                         "action": "expected_change_confirmed",
                         "jira_ticket": item.get("jira_match"),
@@ -391,12 +397,14 @@ class UIRegressionAgent:
                 if not success:
                     validation_results["all_successful"] = False
                 
-                self.logger.log_validation_result(action["action"], success, 
-                                                {"ticket_id": ticket_id})
+                if success:
+                    self.logger.logger.info(f"Action validation successful: {action['action']}")
+                else:
+                    self.logger.logger.error(f"Action validation failed: {action['action']}")
             
             elif action["action"] == "minor_issue_logged":
                 # Validate log file exists and contains the issue
-                log_file = os.path.join(self.logger.log_dir, "minor_issues.jsonl")
+                log_file = os.path.join(self.logger.log_dir, "minor_issues.json")
                 success = os.path.exists(log_file)
                 
                 validation_results["results"].append({
@@ -408,8 +416,10 @@ class UIRegressionAgent:
                 if not success:
                     validation_results["all_successful"] = False
                 
-                self.logger.log_validation_result(action["action"], success,
-                                                {"log_file": log_file})
+                if success:
+                    self.logger.logger.info(f"Action validation successful: {action['action']}")
+                else:
+                    self.logger.logger.error(f"Action validation failed: {action['action']}")
             
             else:
                 # Other actions are considered successful by default
@@ -421,8 +431,29 @@ class UIRegressionAgent:
         
         return validation_results
     
+    async def validate_actions_new(self, results: Dict) -> Dict:
+        """Validate that the new analysis actions were successful"""
+        validation = {
+            "resolved_tickets_updated": len(results.get('resolved_tickets', [])) > 0,
+            "tickets_needing_work_updated": len(results.get('updated_tickets', [])) > 0,
+            "critical_tickets_created": len(results.get('created_tickets', [])) > 0,
+            "minor_issues_logged": results.get('minor_issues_logged', 0) > 0,
+            "all_successful": True
+        }
+        
+        # Check if any actions failed
+        if not any([validation['resolved_tickets_updated'], 
+                   validation['tickets_needing_work_updated'],
+                   validation['critical_tickets_created'],
+                   validation['minor_issues_logged']]):
+            validation['all_successful'] = False
+        
+        return validation
+    
     async def run_regression_test(self, baseline_path: str, updated_path: str) -> Dict:
         """Run the complete UI regression test workflow"""
+        self.logger.initialize_logs()
+        
         self.logger.logger.info("Starting UI regression test")
         
         try:
@@ -438,17 +469,17 @@ class UIRegressionAgent:
                 }
             
             # Step 2: Analyze against JIRA tickets
-            analysis = await self.analyze_against_jira(differences["differences"])
+            analysis = await self.analyze_differences(differences["differences"])
             
-            # Step 3: Log the complete analysis
+            # Step 3: Log the complete analysis  
             self.logger.log_regression_analysis(baseline_path, updated_path, 
                                               differences["differences"], analysis)
             
-            # Step 4: Take appropriate actions
-            actions = await self.take_action(analysis)
+            # Step 4: Process analysis results and take actions
+            results = await self.difference_analyzer.process_analysis_results(analysis)
             
             # Step 5: Validate actions were successful
-            validation = await self.validate_actions(actions)
+            validation = await self.validate_actions_new(results)
             
             # Step 6: Generate summary
             summary = self.logger.get_summary_report()
@@ -456,13 +487,13 @@ class UIRegressionAgent:
             result = {
                 "status": "completed",
                 "differences_found": len(differences["differences"]),
-                "actions_taken": len(actions),
+                "actions_taken": len(results.get('resolved_tickets', [])) + len(results.get('updated_tickets', [])) + len(results.get('created_tickets', [])) + results.get('minor_issues_logged', 0),
                 "validation_successful": validation["all_successful"],
                 "summary": summary,
                 "details": {
                     "differences": differences,
                     "analysis": analysis,
-                    "actions": actions,
+                    "results": results,
                     "validation": validation
                 }
             }

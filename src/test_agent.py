@@ -19,6 +19,12 @@ class TestUIRegressionAgent(unittest.TestCase):
         """Set up test fixtures"""
         self.agent = UIRegressionAgent()
         self.test_dir = tempfile.mkdtemp()
+        
+        # Reset JIRA tickets to initial state for each test
+        from src.engine.jira_integration import JIRA_TICKETS
+        self.agent.jira.tickets = JIRA_TICKETS.copy()
+        self.agent.jira.new_tickets = {}
+        self.agent.jira.ticket_counter = 5
     
     def tearDown(self):
         """Clean up test fixtures"""
@@ -112,9 +118,9 @@ class TestUIRegressionAgent(unittest.TestCase):
             mock_logger.log_dir = self.test_dir
             
             # Create mock log file for validation
-            log_file = os.path.join(self.test_dir, "minor_issues.jsonl")
+            log_file = os.path.join(self.test_dir, "minor_issues.json")
             with open(log_file, 'w', encoding='utf-8') as f:
-                f.write('{"test": "data"}\n')
+                json.dump([{"test": "data"}], f)
             
             result = await self.agent.validate_actions(actions)
             return result
@@ -122,6 +128,108 @@ class TestUIRegressionAgent(unittest.TestCase):
         result = asyncio.run(run_test())
         self.assertIn("all_successful", result)
         self.assertIn("results", result)
+
+
+    def test_jira_status_updates(self):
+        """Test that JIRA ticket statuses are updated correctly"""
+        async def run_test():
+            analysis_results = [
+                {
+                    "jira_match": "UI-002",
+                    "classification": "EXPECTED", 
+                    "implementation_correct": True
+                },
+                {
+                    "jira_match": "UI-001",
+                    "classification": "EXPECTED",
+                    "implementation_correct": False
+                }
+            ]
+            
+            updated_tickets = await self.agent.jira.update_ticket_status_based_on_analysis(analysis_results)
+            
+            ui_002 = await self.agent.jira.get_ticket("UI-002")
+            ui_001 = await self.agent.jira.get_ticket("UI-001")
+            
+            self.assertEqual(ui_002["status"], "Done")
+            self.assertEqual(ui_001["status"], "Changes Requested")
+            self.assertEqual(len(updated_tickets), 2)
+            
+            return updated_tickets
+        
+        asyncio.run(run_test())
+    
+    def test_new_ticket_assignment(self):
+        """Test that new tickets are assigned correctly"""
+        async def run_test():
+            ticket = await self.agent.jira.create_ticket(
+                title="Test Critical Issue",
+                description="This is a test critical issue",
+                priority="High",
+                ticket_type="Bug"
+            )
+            
+            self.assertEqual(ticket["assignee"], "frontend.dev")
+            self.assertEqual(ticket["status"], "Todo")
+            self.assertEqual(ticket["reporter"], "ui_regression.agent")
+            self.assertEqual(ticket["type"], "Bug")
+            self.assertEqual(ticket["priority"], "High")
+            
+            return ticket
+        
+        asyncio.run(run_test())
+    
+    def test_initial_ticket_assignments(self):
+        """Test that initial tickets have correct assignments"""
+        async def run_test():
+            all_tickets = await self.agent.jira.get_all_tickets()
+            
+            for ticket in all_tickets:
+                if ticket["id"] in ["UI-001", "UI-002", "UI-003", "UI-004"]:
+                    self.assertEqual(ticket["assignee"], "frontend.dev")
+                    self.assertEqual(ticket["status"], "In Review")
+                    self.assertEqual(ticket["reporter"], "product.manager")
+            
+            return all_tickets
+        
+        asyncio.run(run_test())
+    
+    def test_comprehensive_regression_workflow(self):
+        """Test complete regression workflow with status updates"""
+        async def run_test():
+            baseline_path = "test_baseline.png"
+            updated_path = "test_updated.png"
+            
+            with open(baseline_path, 'w') as f:
+                f.write("fake image data")
+            with open(updated_path, 'w') as f:
+                f.write("fake image data")
+            
+            try:
+                result = await self.agent.run_regression_test(baseline_path, updated_path)
+                
+                self.assertIn("status", result)
+                self.assertIn("differences_found", result)
+                self.assertIn("actions_taken", result)
+                
+                ui_002 = await self.agent.jira.get_ticket("UI-002")
+                self.assertIsNotNone(ui_002)
+                
+                new_tickets = await self.agent.jira.get_tickets_by_status("Todo")
+                for ticket in new_tickets:
+                    if ticket["id"].startswith("UI-0") and int(ticket["id"].split("-")[1]) >= 5:
+                        self.assertEqual(ticket["assignee"], "frontend.dev")
+                        self.assertEqual(ticket["reporter"], "ui_regression.agent")
+                
+                return result
+            finally:
+                try:
+                    os.remove(baseline_path)
+                    os.remove(updated_path)
+                except:
+                    pass
+        
+        asyncio.run(run_test())
 
 
 if __name__ == '__main__':
