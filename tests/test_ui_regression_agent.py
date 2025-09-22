@@ -44,18 +44,17 @@ class TestUIRegressionAgent(unittest.TestCase):
         self.assertIsNotNone(self.orchestrator_agent)
         self.assertIsNotNone(self.classification_agent.jira)
     
-    @patch('openai.AsyncOpenAI')
+    @patch('llama_index.multi_modal_llms.openai.OpenAIMultiModal')
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test_key'})
-    def test_compare_screenshots_mock(self, mock_openai_class):
-        """Test screenshot comparison with mocked OpenAI client"""
+    def test_compare_screenshots_mock(self, mock_multimodal_class):
+        """Test screenshot comparison with mocked multimodal LLM"""
 
-        # Mock the OpenAI client and response
-        mock_client = MagicMock()
-        mock_openai_class.return_value = mock_client
+        # Mock the multimodal LLM instance
+        mock_llm = MagicMock()
+        mock_multimodal_class.return_value = mock_llm
         
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = json.dumps({
+        mock_response.text = json.dumps({
             "differences": [
                 {
                     "element_type": "button",
@@ -65,22 +64,22 @@ class TestUIRegressionAgent(unittest.TestCase):
                 }
             ]
         })
-        
-        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        mock_llm.acomplete = AsyncMock(return_value=mock_response)
         
 
         async def run_test():
             import tempfile
             import os
             
-            # Create fake image files for testing
+            # Create minimal valid PNG files for testing
             baseline_path = os.path.join(self.test_dir, "baseline.png")
             updated_path = os.path.join(self.test_dir, "updated.png")
             
-            with open(baseline_path, 'wb') as f:
-                f.write(b"fake image data")
-            with open(updated_path, 'wb') as f:
-                f.write(b"fake image data")
+            # Create minimal 1x1 PNG files
+            from PIL import Image
+            img = Image.new('RGB', (1, 1), color='white')
+            img.save(baseline_path)
+            img.save(updated_path)
             
             result = await self.ui_agent.compare_screenshots(baseline_path, updated_path)
             return result

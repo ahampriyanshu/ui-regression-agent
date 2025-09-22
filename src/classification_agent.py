@@ -50,29 +50,11 @@ class ClassificationAgent:
         
         JIRA Tickets:
         {json.dumps(jira_tickets, indent=2)}
-        
-        Please analyze these differences against the JIRA tickets and return a JSON response with:
-        {{
-            "resolved_tickets": [
-                {{"ticket_id": "UI-XXX", "reason": "why this ticket is resolved"}}
-            ],
-            "tickets_needing_work": [
-                {{"ticket_id": "UI-XXX", "reason": "why this ticket needs more work"}}
-            ],
-            "new_issues": [
-                {{
-                    "title": "Issue title",
-                    "description": "Issue description",
-                    "severity": "critical|minor",
-                    "details": "additional details"
-                }}
-            ]
-        }}
         """
         
         try:
             response = await llm.acomplete(prompt)
-            self.logger.logger.info(f"Received analysis response: {response.text[:200]}...")
+            self.logger.logger.info(f"Received analysis response: {response.text}")
             
             try:
                 analysis_data = json.loads(response.text)

@@ -46,98 +46,43 @@ class UIRegressionAgent:
             raise ValueError("Failed to encode images for comparison")
         
         if not os.getenv("OPENAI_API_KEY"):
-            raise ValueError("OpenAI API key is required for UI comparison. Please set OPENAI_API_KEY environment variable.")
+            raise ValueError(
+                "OpenAI API key is required for UI comparison. Please set environment variables:\n"
+                "OPENAI_API_KEY=your_api_key\n"
+                "OPENAI_API_BASE=https://api.openai.com/v1 (optional)\n"
+                "Example: OPENAI_API_KEY=sk-your-key python app.py baseline.png updated.png"
+            )
         
-        prompt = f"""
-        {self.ui_regression_prompt}
+        # Create vision-enabled prompt with images  
+        from llama_index.core.schema import ImageDocument
         
-        Please analyze these two screenshots for UI differences:
+        baseline_doc = ImageDocument(image_path=baseline_path)
+        updated_doc = ImageDocument(image_path=updated_path)
         
-        BASELINE IMAGE: The first image shows what the UI should look like
-        UPDATED IMAGE: The second image shows the current state of the UI
-        
-        Compare these images carefully and identify any visual differences including:
-        - Text changes, additions, or removals
-        - Button color, size, or position changes  
-        - Input field modifications
-        - Layout shifts or spacing changes
-        - New or missing UI elements
-        - Color or styling differences
-        
-        Return your response as a JSON object with this structure:
-        {{
-            "differences": [
-                {{
-                    "element_type": "text|button|input|image|layout",
-                    "change_description": "describe what changed",
-                    "location": "where on the page this element is located",
-                    "severity": "critical|minor|cosmetic", 
-                    "details": "additional details about the change"
-                }}
-            ]
-        }}
-        
-        If no differences are found, return: {{"differences": []}}
-        
-        Be thorough - even small changes matter for UI regression testing.
-        """
+        prompt = self.ui_regression_prompt
         
         self.logger.logger.info("Sending request to LLM for image comparison")
         
         try:
-            # Use OpenAI client directly for vision capabilities
-            import openai
-            from openai import AsyncOpenAI
+            # Use the vision capabilities by including image documents
+            from llama_index.multi_modal_llms.openai import OpenAIMultiModal
+            multimodal_llm = OpenAIMultiModal(model="gpt-4o", max_new_tokens=4096)
             
-            client = AsyncOpenAI()
-            
-            # Read and encode images
-            import base64
-            
-            with open(baseline_path, "rb") as f:
-                baseline_b64 = base64.b64encode(f.read()).decode('utf-8')
-            
-            with open(updated_path, "rb") as f:
-                updated_b64 = base64.b64encode(f.read()).decode('utf-8')
-            
-            response = await client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/png;base64,{baseline_b64}",
-                                    "detail": "high"
-                                }
-                            },
-                            {
-                                "type": "image_url", 
-                                "image_url": {
-                                    "url": f"data:image/png;base64,{updated_b64}",
-                                    "detail": "high"
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens=4096
+            response = await multimodal_llm.acomplete(
+                prompt=prompt,
+                image_documents=[baseline_doc, updated_doc]
             )
             
-            response_text = response.choices[0].message.content
-            self.logger.logger.info(f"Received LLM response: {response_text[:200]}...")
+            self.logger.logger.info(f"Received LLM response: {response.text}")
             
             try:
-                differences_data = json.loads(response_text)
+                differences_data = json.loads(response.text)
                 self.logger.logger.info("Successfully parsed LLM response as JSON")
                 return differences_data
             except json.JSONDecodeError as e:
                 self.logger.logger.warning(f"JSON decode error: {e}")
                 
-                markdown_json_match = re.search(r'```json\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+                markdown_json_match = re.search(r'```json\s*(\{.*?\})\s*```', response.text, re.DOTALL)
                 if markdown_json_match:
                     try:
                         differences_data = json.loads(markdown_json_match.group(1))
@@ -146,7 +91,7 @@ class UIRegressionAgent:
                     except json.JSONDecodeError:
                         pass
                 
-                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
                 if json_match:
                     try:
                         differences_data = json.loads(json_match.group())
