@@ -21,7 +21,7 @@ You're working on a login page that has 4 JIRA tickets for planned changes:
 **Existing JIRA Tickets:**
 - `UI-001`: Add new href 'Forgot Password?'
 - `UI-002`: Change password input from text to password type
-- `UI-003`: Change Login button from transparent to green
+- `UI-003`: Change Login button from blue to green
 - `UI-004`: Add header with 'Home' (left) and 'About' (right)
 
 **What Actually Changed:**

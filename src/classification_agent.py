@@ -46,7 +46,13 @@ class ClassificationAgent:
                 "new_issues": [],
             }
 
-        jira_tickets = await self.jira.get_all_tickets()
+        all_tickets = await self.jira.get_all_tickets()
+        # Filter to only UI-related tickets for UI regression analysis
+        jira_tickets = [ticket for ticket in all_tickets if ticket['id'].startswith('UI-')]
+        
+        self.logger.logger.info(
+            f"Found {len(all_tickets)} total tickets, filtering to {len(jira_tickets)} UI tickets"
+        )
 
         prompt = f"""
         {self.analysis_prompt}

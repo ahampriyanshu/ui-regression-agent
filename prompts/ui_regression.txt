@@ -47,7 +47,7 @@ Return your analysis in this EXACT JSON format (no additional text, no markdown 
 7. Include even subtle changes that might indicate functional modifications
 
 ## SPECIFIC THINGS TO LOOK FOR:
-- Button color/style changes (transparent → colored, etc.)
+- Button color/style changes (blue → colored, etc.)
 - New UI elements added (links, icons, headers, etc.)
 - Text modifications (content, styling, positioning)
 - Form field changes (input types, placeholders, validation states)

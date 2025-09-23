@@ -15,7 +15,7 @@
     "UI-002": {
       "id": "UI-002", 
       "title": "Change the input field for password from type text to password",
-      "description": "Update the password input field to use type='password' for security and add an eye icon to toggle visibility",
+      "description": "Update the password input field to use type='password' for security, should obscure plain text, and add an eye icon to toggle visibility",
       "status": "in_review",
       "priority": "high",
       "type": "fix",
@@ -26,14 +26,62 @@
     },
     "UI-003": {
       "id": "UI-003",
-      "title": "The 'Login' button would change from transparent to green",
-      "description": "Update the Login button styling to use green background color instead of transparent for better visibility",
+      "title": "The 'Login' button would change from blue to green",
+      "description": "Update the Login button styling to use green background color instead of blue for better visibility",
       "status": "in_review", 
       "priority": "low",
       "type": "fix",
       "created": "2024-01-12T11:30:00Z",
       "updated": "2024-01-17T13:20:00Z",
       "assignee": "frontend.dev",
+      "reporter": "product.manager"
+    },
+    "BE-001": {
+      "id": "BE-001",
+      "title": "Implement user authentication API endpoint",
+      "description": "Create REST API endpoint for user login authentication with JWT token generation and validation",
+      "status": "in_progress",
+      "priority": "high",
+      "type": "feature",
+      "created": "2024-01-08T14:00:00Z",
+      "updated": "2024-01-20T10:15:00Z",
+      "assignee": "backend.dev",
+      "reporter": "product.manager"
+    },
+    "BE-002": {
+      "id": "BE-002",
+      "title": "Fix password reset email service",
+      "description": "Resolve issue where password reset emails are not being sent due to SMTP configuration problems",
+      "status": "todo",
+      "priority": "medium",
+      "type": "fix",
+      "created": "2024-01-18T09:30:00Z",
+      "updated": "2024-01-18T09:30:00Z",
+      "assignee": "backend.dev",
+      "reporter": "product.tester"
+    },
+    "DOPS-001": {
+      "id": "DOPS-001",
+      "title": "Setup CI/CD pipeline for automated deployments",
+      "description": "Configure GitHub Actions workflow for automated testing, building, and deployment to staging and production environments",
+      "status": "in_progress",
+      "priority": "high",
+      "type": "feature",
+      "created": "2024-01-05T11:00:00Z",
+      "updated": "2024-01-19T16:20:00Z",
+      "assignee": "backend.dev",
+      "reporter": "product.manager"
+    },
+    "DATA-001": {
+      "id": "DATA-001",
+      "title": "Optimize user analytics database queries",
+      "description": "Improve performance of user behavior analytics queries by adding proper indexes and optimizing SQL statements",
+      "status": "todo",
+      "priority": "medium",
+      "type": "perf_improvement",
+      "created": "2024-01-16T13:45:00Z",
+      "updated": "2024-01-16T13:45:00Z",
+      "assignee": "backend.dev",
       "reporter": "product.manager"
     }
   }
