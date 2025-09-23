@@ -38,7 +38,7 @@
     },
     "BE-001": {
       "id": "BE-001",
-      "title": "Implement user authentication API endpoint",
+      "title": "Implement Oauth 2.0",
       "description": "Create REST API endpoint for user login authentication with JWT token generation and validation",
       "status": "in_progress",
       "priority": "high",
@@ -62,8 +62,8 @@
     },
     "DOPS-001": {
       "id": "DOPS-001",
-      "title": "Setup CI/CD pipeline for automated deployments",
-      "description": "Configure GitHub Actions workflow for automated testing, building, and deployment to staging and production environments",
+      "title": "Update Qlty check",
+      "description": "Add diff coverage to quality check",
       "status": "in_progress",
       "priority": "high",
       "type": "feature",
@@ -75,7 +75,7 @@
     "DATA-001": {
       "id": "DATA-001",
       "title": "Optimize user analytics database queries",
-      "description": "Improve performance of user behavior analytics queries by adding proper indexes and optimizing SQL statements",
+      "description": "Add composite index for user_id and timestamp on user_behavior table",
       "status": "todo",
       "priority": "medium",
       "type": "perf_improvement",

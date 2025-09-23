@@ -64,10 +64,17 @@ Return your analysis in this EXACT JSON format (no markdown, no extra text):
 8. Use constants: severity (critical|minor), priority (high|medium|low), type (feature|fix|perf_improvement)
 
 ## MATCHING GUIDELINES:
-- Look for keyword matches between difference descriptions and JIRA titles/descriptions
-- Consider if the UI change aligns with the intended JIRA functionality
-- Account for slight variations in implementation vs. specification
-- Mark as "needs_work" if implementation exists but has issues
+- Look for exact matches between difference descriptions and JIRA titles/descriptions
+- Consider if the UI change aligns PRECISELY with the intended JIRA functionality
+- **CRITICAL**: Text content must match exactly (including punctuation like ?, !, etc.)
+- **CRITICAL**: If implementation exists but differs from specification, mark as "pending" (needs work)
+- Mark as "resolved" ONLY if the change perfectly matches the JIRA ticket requirements
 - Mark as "new_issue" only if no related JIRA ticket exists
+
+## EXAMPLES:
+- JIRA says "Add 'Forgot Password?' link" but actual shows "Forgot Password" → PENDING (missing question mark)
+- JIRA says "Change button to green" and actual shows green button → RESOLVED (perfect match)
+- JIRA says "Add eye icon to password field" and actual shows eye icon → RESOLVED (perfect match)
+- Actual shows unexpected header changes with no related JIRA → NEW TICKET (critical regression)
 
 Now analyze the provided differences against the JIRA tickets.

@@ -271,7 +271,8 @@ def create_ticket(
         cursor = conn.cursor()
 
         # Get next ticket number based on existing tickets
-        cursor.execute("SELECT COUNT(*) FROM jira_tickets")
+        # Get current count of UI tickets to generate next UI ID
+        cursor.execute("SELECT COUNT(*) FROM jira_tickets WHERE id LIKE 'UI-%'")
         count_result = cursor.fetchone()
         next_number = (count_result[0] if count_result else 0) + 1
 

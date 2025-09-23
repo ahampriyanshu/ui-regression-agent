@@ -140,11 +140,37 @@ async def run_cli_mode(baseline_path: str, updated_path: str):
         elif result["status"] == "success":
             print(f"✅ {result['message']}")
 
+        elif result["status"] == "error":
+            error_message = result.get("message", "Unknown error")
+            
+            # Handle specific error types with user-friendly messages
+            if "Images are too similar" in error_message:
+                print("⚠️  Images Too Similar")
+                print("The provided screenshots appear to be identical or nearly identical.")
+                print("Please provide screenshots with visible differences for comparison.")
+            elif "not valid webpage screenshots" in error_message:
+                print("⚠️  Invalid Image Type")
+                print("One or both images do not appear to be webpage screenshots.")
+                print("Please provide valid webpage screenshots for UI regression testing.")
+            else:
+                print(f"❌ Analysis Error: {error_message}")
         else:
             print(f"❌ Error: {result.get('message', 'Unknown error')}")
 
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        error_message = str(e)
+        
+        # Handle specific error types with user-friendly messages
+        if "Images are too similar" in error_message:
+            print("⚠️  Images Too Similar")
+            print("The provided screenshots appear to be identical or nearly identical.")
+            print("Please provide screenshots with visible differences for comparison.")
+        elif "not valid webpage screenshots" in error_message:
+            print("⚠️  Invalid Image Type")
+            print("One or both images do not appear to be webpage screenshots.")
+            print("Please provide valid webpage screenshots for UI regression testing.")
+        else:
+            print(f"❌ Unexpected error: {e}")
 
 
 def streamlit_interface():
@@ -155,42 +181,49 @@ def streamlit_interface():
 
     st.title("🔍 UI Regression Detection Agent")
     st.markdown("**Detect UI regressions and cross-check with JIRA tickets**")
-
-    st.sidebar.header("Configuration")
-
     st.header("📸 Upload Screenshots")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Baseline Screenshot")
         baseline_file = st.file_uploader(
             "Upload baseline image",
             type=["png", "jpg", "jpeg"],
             key="baseline",
+            help="Maximum file size: 1MB. Supported formats: PNG, JPG, JPEG"
         )
 
         if baseline_file:
-            baseline_image = Image.open(baseline_file)
-            st.image(
-                baseline_image,
-                caption="Baseline Screenshot",
-                use_container_width=True,
-            )
+            # Check file size (1MB = 1024*1024 bytes)
+            if baseline_file.size > 1024 * 1024:
+                st.error("❌ Baseline image must be less than 1MB")
+            else:
+                baseline_image = Image.open(baseline_file)
+                st.image(
+                    baseline_image,
+                    caption="Baseline Screenshot",
+                    width="stretch",
+                )
 
     with col2:
-        st.subheader("Updated Screenshot")
         updated_file = st.file_uploader(
-            "Upload updated image", type=["png", "jpg", "jpeg"], key="updated"
+            "Upload updated image", 
+            type=["png", "jpg", "jpeg"], 
+            key="updated",
+            help="Maximum file size: 1MB. Supported formats: PNG, JPG, JPEG"
         )
 
         if updated_file:
-            updated_image = Image.open(updated_file)
-            st.image(
-                updated_image,
-                caption="Updated Screenshot",
-                use_container_width=True,
-            )
+            # Check file size (1MB = 1024*1024 bytes)
+            if updated_file.size > 1024 * 1024:
+                st.error("❌ Updated image must be less than 1MB")
+            else:
+                updated_image = Image.open(updated_file)
+                st.image(
+                    updated_image,
+                    caption="Updated Screenshot",
+                    width="stretch",
+                )
 
     if not baseline_file or not updated_file:
         st.info(
@@ -209,13 +242,13 @@ def streamlit_interface():
                     st.image(
                         baseline_path,
                         caption="Default Baseline",
-                        use_container_width=True,
+                        width="stretch",
                     )
                 with col2:
                     st.image(
                         updated_path,
                         caption="Default Updated",
-                        use_container_width=True,
+                        width="stretch",
                     )
 
                 st.session_state.baseline_path = baseline_path
@@ -226,6 +259,15 @@ def streamlit_interface():
     st.header("🔍 Run Analysis")
 
     if st.button("🚀 Start UI Regression Analysis", type="primary"):
+        # Check file sizes before processing
+        if baseline_file and baseline_file.size > 1024 * 1024:
+            st.error("❌ Baseline image must be less than 1MB")
+            return
+        
+        if updated_file and updated_file.size > 1024 * 1024:
+            st.error("❌ Updated image must be less than 1MB")
+            return
+        
         baseline_path = None
         updated_path = None
 
@@ -266,7 +308,17 @@ def streamlit_interface():
                 display_results(result)
 
             except Exception as e:
-                st.error(f"❌ Error during analysis: {e}")
+                error_message = str(e)
+                
+                # Handle specific error types with user-friendly messages
+                if "Images are too similar" in error_message:
+                    st.warning("⚠️ Images Too Similar")
+                    st.info("The provided screenshots appear to be identical or nearly identical. Please provide screenshots with visible differences for comparison.")
+                elif "not valid webpage screenshots" in error_message:
+                    st.warning("⚠️ Invalid Image Type")
+                    st.info("One or both images do not appear to be webpage screenshots. Please provide valid webpage screenshots for UI regression testing.")
+                else:
+                    st.error(f"❌ Error during analysis: {e}")
 
 
 def display_results(result):
@@ -279,52 +331,89 @@ def display_results(result):
     elif status == "success":
         st.success(f"✅ {result.get('message', 'No differences found')}")
         return
+    elif status == "error":
+        error_message = result.get("message", "Unknown error")
+        
+        # Handle specific error types with user-friendly messages
+        if "Images are too similar" in error_message:
+            st.warning("⚠️ Images Too Similar")
+            st.info("The provided screenshots appear to be identical or nearly identical. Please provide screenshots with visible differences for comparison.")
+        elif "not valid webpage screenshots" in error_message:
+            st.warning("⚠️ Invalid Image Type")
+            st.info("One or both images do not appear to be webpage screenshots. Please provide valid webpage screenshots for UI regression testing.")
+        else:
+            st.error(f"❌ Analysis failed: {error_message}")
+        return
     else:
         st.error(
             f"❌ Analysis failed: {result.get('message', 'Unknown error')}"
         )
         return
 
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.metric("🔍 UI Changes", result.get("differences_found", 0))
-
-    with col2:
-        ticket_updates = result.get("jira_updates", 0)
-        st.metric("📋 JIRA Updates", ticket_updates)
-
-    with col3:
-        timestamp = result.get("summary", {}).get("timestamp", "N/A")
-        if timestamp != "N/A":
-            timestamp = timestamp[:19].replace("T", " ")
-        st.metric("⏰ Completed", timestamp)
-
-    with col4:
-        status = result.get("status", "unknown").title()
-        st.metric("✅ Status", status)
-
-
     if "details" in result and "differences" in result["details"]:
         st.subheader("🔍 Differences Detected")
 
         differences = result["details"]["differences"].get("differences", [])
         if differences:
+            # Create table data
+            table_data = []
             for diff in differences:
-                severity_color = {
+                severity_icon = {
+                    "high": "🔴",
+                    "medium": "🟡", 
+                    "low": "🟢",
                     "critical": "🔴",
                     "minor": "🟡",
                     "cosmetic": "🟢",
-                }.get(diff.get("severity", "cosmetic"), "⚪")
-
-                st.write(
-                    f"{severity_color} **{diff.get('element_type', 'Unknown')}** - {diff.get('change_description', 'No description')}"
-                )
-                st.write(f"   📍 Location: {diff.get('location', 'Unknown')}")
-                st.write(f"   ℹ️ Details: {diff.get('details', 'No details')}")
-                st.write("---")
+                }.get(diff.get("severity", "low"), "⚪")
+                
+                table_data.append({
+                    "Element Type": diff.get("element_type", "Unknown").title(),
+                    "Description": diff.get("description", "No description available"),
+                    "Severity": f"{severity_icon} {diff.get('severity', 'unknown').title()}"
+                })
+            
+            # Display as table
+            st.dataframe(
+                table_data,
+                width="stretch",
+                hide_index=True
+            )
         else:
             st.info("No differences detected")
+
+    # Display JIRA ticket updates if available
+    if "details" in result and "results" in result["details"]:
+        results = result["details"]["results"]
+        
+        # Check if we have any ticket updates to show
+        has_updates = any([
+            results.get("resolved_tickets"),
+            results.get("pending_tickets"), 
+            results.get("new_tickets")
+        ])
+        
+        if has_updates:
+            st.subheader("📋 JIRA Ticket Updates")
+            
+            if results.get("resolved_tickets"):
+                st.success("**✅ Resolved Tickets**")
+                for ticket in results["resolved_tickets"]:
+                    ticket_id = ticket.get('ticket_id', ticket.get('id', 'Unknown'))
+                    st.write(f"• {ticket_id} - Marked as completed")
+            
+            if results.get("pending_tickets"):
+                st.warning("**🔄 Pending Tickets**") 
+                for ticket in results["pending_tickets"]:
+                    ticket_id = ticket.get('ticket_id', ticket.get('id', 'Unknown'))
+                    reason = ticket.get('reason', 'Needs further work')
+                    st.write(f"• {ticket_id} - On hold: {reason}")
+            
+            if results.get("new_tickets"):
+                st.error("**🆕 New Issues Created**")
+                for ticket in results["new_tickets"]:
+                    ticket_id = ticket.get('id', ticket.get('ticket_id', 'Unknown'))
+                    st.write(f"• {ticket_id} - New critical issue reported")
 
     with st.expander("🔧 Raw Analysis Data"):
         st.json(result)

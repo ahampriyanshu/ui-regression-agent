@@ -20,7 +20,7 @@ class ImageDiffAgent:
         """Load the UI regression prompt from file"""
         try:
             prompt_path = os.path.join(
-                os.path.dirname(__file__), "..", "prompts", "ui_regression.txt"
+                os.path.dirname(__file__), "..", "prompts", "image_diff_agent.txt"
             )
             with open(prompt_path, "r", encoding="utf-8") as f:
                 return f.read().strip()
@@ -53,6 +53,17 @@ class ImageDiffAgent:
                 self.logger.logger.info(
                     "Successfully parsed LLM response as JSON"
                 )
+                
+                # Check for error conditions
+                if "error" in differences_data:
+                    error_code = differences_data["error"]
+                    if error_code == "IMAGES_TOO_SIMILAR":
+                        raise ValueError("Images are too similar to detect meaningful differences")
+                    elif error_code == "INVALID_IMAGE_TYPE":
+                        raise ValueError("One or both images are not valid webpage screenshots")
+                    else:
+                        raise ValueError(f"LLM returned error: {error_code}")
+                
                 return differences_data
             except json.JSONDecodeError as e:
                 self.logger.logger.warning("JSON decode error: %s", e)
@@ -68,6 +79,17 @@ class ImageDiffAgent:
                         self.logger.logger.info(
                             "Successfully extracted JSON from markdown"
                         )
+                        
+                        # Check for error conditions
+                        if "error" in differences_data:
+                            error_code = differences_data["error"]
+                            if error_code == "IMAGES_TOO_SIMILAR":
+                                raise ValueError("Images are too similar to detect meaningful differences")
+                            elif error_code == "INVALID_IMAGE_TYPE":
+                                raise ValueError("One or both images are not valid webpage screenshots")
+                            else:
+                                raise ValueError(f"LLM returned error: {error_code}")
+                        
                         return differences_data
                     except json.JSONDecodeError:
                         pass
@@ -79,6 +101,17 @@ class ImageDiffAgent:
                         self.logger.logger.info(
                             "Successfully extracted JSON using regex"
                         )
+                        
+                        # Check for error conditions
+                        if "error" in differences_data:
+                            error_code = differences_data["error"]
+                            if error_code == "IMAGES_TOO_SIMILAR":
+                                raise ValueError("Images are too similar to detect meaningful differences")
+                            elif error_code == "INVALID_IMAGE_TYPE":
+                                raise ValueError("One or both images are not valid webpage screenshots")
+                            else:
+                                raise ValueError(f"LLM returned error: {error_code}")
+                        
                         return differences_data
                     except json.JSONDecodeError:
                         pass

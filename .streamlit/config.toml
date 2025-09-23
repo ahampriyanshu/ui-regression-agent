@@ -8,6 +8,9 @@ enableCORS = false
 # Disable XSRF protection for development
 enableXsrfProtection = false
 
+# Set maximum file upload size to 1MB
+maxUploadSize = 1
+
 [browser]
 # Disable usage stats gathering
 gatherUsageStats = false

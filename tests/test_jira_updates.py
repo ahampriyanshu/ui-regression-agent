@@ -10,6 +10,7 @@ import asyncio
 import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
 import os
+import subprocess
 
 from src.image_diff_agent import ImageDiffAgent
 from src.classification_agent import ClassificationAgent
@@ -18,7 +19,12 @@ from mcp_servers.jira import JIRAMCPServer
 
 
 class TestJIRAUpdates(unittest.TestCase):
-    """Test JIRA updates functionality"""
+
+    @classmethod
+    def setUpClass(cls):
+        """Reset database before running all tests in this class"""
+        subprocess.run(["bash", "scripts/cleanup.sh"], check=True, capture_output=True)
+        subprocess.run(["bash", "scripts/seed.sh"], check=True, capture_output=True)
 
     def setUp(self):
         """Set up test fixtures"""
@@ -127,8 +133,8 @@ class TestJIRAUpdates(unittest.TestCase):
                 "pending_tickets": [],
                 "new_tickets": [
                     {
-                        "title": "Header navigation alignment issue",
-                        "description": "Home and About links are positioned incorrectly in the header - About should be on extreme right",
+                        "title": "Missing About link in header",
+                        "description": "About link is missing from the navigation header",
                         "severity": "critical",
                         "priority": "high",
                         "type": "fix",

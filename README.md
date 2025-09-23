@@ -1,260 +1,221 @@
-# 🔍 UI Regression Agent Challenge
+## Scenario
+You're a QA engineer and your team has deployed three UI updates to the login page. The product manager is asking about regression testing, but you're staring at folders full of before/after screenshots and a JIRA board with dozens of tickets.
 
-## 🧩 Challenge Overview
+You need to check if the changes match planned features or if there are unexpected regressions. For each issue found, you'll need to decide whether to file a critical bug report, log a minor issue, or simply confirm an expected change.
 
-Build an AI agent that detects UI regressions between two screenshots (baseline vs new build) and decides whether to escalate them based on existing JIRA tickets.
+Your manager expects a comprehensive report by noon, but doing this manually means you'll miss other important testing work. You need an AI agent that can automate this entire UI regression workflow.
 
-### The Challenge
+## Task
+Build a multi-modal AI agent that compares webpage screenshots and manages UI regression issues by:
 
-Your task is to create a **multi-modal agentic AI** that can:
+Comparing baseline and updated screenshots using LLM vision capabilities to detect UI differences.
 
-1. **Compare Screenshots**: Analyze baseline vs updated UI screenshots using LLM vision capabilities
-2. **Detect Changes**: Identify missing, misaligned, or changed UI elements
-3. **Cross-check with JIRA**: Determine if changes match existing feature tickets
-4. **Take Action**: Escalate critical issues, log minor ones, or confirm expected changes
-5. **Validate Results**: Ensure all actions were completed successfully
+Analyzing detected differences against existing JIRA tickets to classify changes as expected, minor issues, or critical regressions.
 
-### Real-World Scenario
+Taking automated actions like creating JIRA tickets for critical issues, updating ticket statuses, and logging minor issues.
 
-You're working on a login page that has 4 JIRA tickets for planned changes:
+Providing structured feedback on all UI changes and actions taken.
 
-**Existing JIRA Tickets:**
-- `UI-001`: Add new href 'Forgot Password?'
-- `UI-002`: Change password input from text to password type
-- `UI-003`: Change Login button from blue to green
-- `UI-004`: Add header with 'Home' (left) and 'About' (right)
+Returns detailed analysis results and JIRA ticket updates.
 
-**What Actually Changed:**
-1. ✅ 'Forgot Password' link added (but missing `?`) → **Minor Issue**
-2. ✅ Password field with eye icon → **Expected Change**
-3. ⚠️ Login button is green BUT 'Register' changed to 'Sign Up' → **Critical Issue**
-4. ⚠️ Header added BUT 'About' is next to 'Home', not on right → **Critical Issue**
+## Requirements
+Implement a three-agent system with specialized responsibilities:
 
-## 🎯 Expected Behavior
+ImageDiffAgent
+Uses LLM vision to compare two webpage screenshots and identify differences.
 
-| Change | JIRA Match | Classification | Action |
-|--------|------------|----------------|---------|
-| 'Forgot Password' (no ?) | Partial match UI-001 | MINOR | Log locally |
-| Password field + eye icon | Exact match UI-002 | EXPECTED | Confirm & exit |
-| 'Register' → 'Sign Up' | No match | CRITICAL | File new JIRA |
-| 'About' positioning wrong | Partial match UI-004 | CRITICAL | File new JIRA |
+Detects changes in UI elements like buttons, text, layouts, colors, and positioning.
 
-## 🏗️ Architecture
+Returns structured list of differences with descriptions and severity levels.
 
-```
-UI Regression Agent
-├── 📸 Image Analysis (LLM Vision)
-├── 🎫 JIRA Integration (MCP Server)
-├── 📝 Logging System
-├── 🔄 Action Engine
-└── ✅ Validation System
-```
+Must handle error cases like identical images or invalid image types.
 
-## 🚀 Getting Started
+ClassificationAgent
+Analyzes UI differences against existing JIRA tickets to classify changes.
 
-### Prerequisites
+Determines if changes match planned features or represent unexpected regressions.
 
-- Python 3.8+
-- OpenAI API key (for GPT-4V)
-- Basic understanding of async Python
+Categorizes differences into resolved tickets, pending work, and new issues.
 
-### Installation
+Filters only UI-related tickets for analysis.
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+OrchestratorAgent
+Executes actions based on classification results with JIRA integration.
 
-# Set up environment
-export OPENAI_API_KEY="your-api-key-here"
-```
+Updates resolved tickets to "done" status for completed features.
 
-### Quick Demo
+Moves pending tickets to "on_hold" with explanatory comments.
 
-```bash
-# Run the complete regression test
-python main.py screenshots/login_baseline.png screenshots/login_updated.png
+Creates new JIRA tickets for critical regression issues.
 
-# Or use the web interface
-streamlit run app.py --server.port 8000
-```
+Tracks all actions taken and validates successful execution.
 
-## 📁 Project Structure
+Workflow must run in this order:
+ImageDiffAgent compares screenshots and identifies UI differences
 
-```
-ui-regress/
-├── src/
-│   ├── agent.py              # Main UI Regression Agent
-│   ├── prompts.py            # LLM prompts for analysis
-│   ├── engine/
-│   │   └── jira_integration.py  # JIRA MCP integration
-│   ├── mcp_servers/
-│   │   └── jira_server.py    # Mock JIRA server
-│   └── utils/
-│       └── logger.py         # Logging utilities
-├── screenshots/
-│   ├── login_baseline.png    # Original UI
-│   └── login_updated.png     # Updated UI with changes
-├── main.py                   # CLI interface
-├── app.py                    # Streamlit web interface
-└── requirements.txt          # Dependencies
-```
+ClassificationAgent analyzes differences against JIRA tickets and categorizes changes
 
-## 🔧 Key Components
+OrchestratorAgent executes appropriate actions and updates JIRA tickets
 
-### 1. UI Regression Agent (`src/agent.py`)
+System returns summary of differences found and actions taken
 
-The main agent that orchestrates the entire workflow:
+## Examples
+Input Screenshots
+Baseline: Login page with blue "Login" button and text input
+Updated: Login page with green "Login" button and password input with eye icon
 
-```python
-class ImageDiffAgent:
-    async def run_regression_test(self, baseline_path, updated_path):
-        # 1. Compare screenshots using LLM vision
-        differences = await self.compare_screenshots(baseline_path, updated_path)
-        
-        # 2. Analyze against JIRA tickets
-        analysis = await self.analyze_against_jira(differences)
-        
-        # 3. Take appropriate actions
-        actions = await self.take_action(analysis)
-        
-        # 4. Validate actions succeeded
-        validation = await self.validate_actions(actions)
-        
-        return result
-```
+Expected JIRA Tickets:
+UI-001: Add "Forgot Password?" link (with question mark)
+UI-002: Change password input type from text to password  
+UI-003: Change Login button color from blue to green
 
-### 2. JIRA Integration (`src/engine/jira_integration.py`)
+ImageDiffAgent Output
+[
+  {
+    "description": "Forgot Password link added but without question mark",
+    "element_type": "link",
+    "severity": "low"
+  },
+  {
+    "description": "Password input field now shows as password type with eye icon",
+    "element_type": "input",
+    "severity": "low"
+  },
+  {
+    "description": "Login button color changed from blue to green",
+    "element_type": "button", 
+    "severity": "medium"
+  },
+  {
+    "description": "Register button text changed to Sign Up", 
+    "element_type": "button",
+    "severity": "high"
+  },
+  {
+    "description": "About link missing from navigation header",
+    "element_type": "navigation",
+    "severity": "high"
+  }
+]
 
-Handles all JIRA operations through MCP server:
+ClassificationAgent Output
+{
+  "resolved_tickets": [
+    {
+      "ticket_id": "UI-002",
+      "reason": "Password input change matches ticket requirements exactly"
+    },
+    {
+      "ticket_id": "UI-003", 
+      "reason": "Login button color change implemented as specified"
+    }
+  ],
+  "pending_tickets": [
+    {
+      "ticket_id": "UI-001",
+      "reason": "Forgot Password link added but missing question mark as specified"
+    }
+  ],
+  "new_tickets": [
+    {
+      "title": "Unexpected button text change",
+      "description": "Register button text changed to Sign Up without authorization",
+      "severity": "critical",
+      "priority": "high",
+      "type": "fix",
+      "assignee": "frontend.dev",
+      "reporter": "ui_regression.agent",
+      "status": "todo"
+    },
+    {
+      "title": "Missing About link in header",
+      "description": "About navigation link missing from header - critical navigation issue",
+      "severity": "critical",
+      "priority": "high", 
+      "type": "fix",
+      "assignee": "frontend.dev",
+      "reporter": "ui_regression.agent",
+      "status": "todo"
+    }
+  ]
+}
 
-```python
-class JIRAIntegration:
-    async def get_all_tickets(self) -> List[Dict]
-    async def create_ticket(self, title, description, priority) -> Dict
-    async def search_tickets(self, query) -> List[Dict]
-```
+Final Output
+{
+  "status": "completed",
+  "differences_found": 5,
+  "jira_updates": 4,
+  "details": {
+    "resolved_tickets": ["UI-002", "UI-003"],
+    "pending_tickets": ["UI-001"],
+    "new_tickets": ["UI-004", "UI-005"]
+  }
+}
 
-### 3. Logging System (`src/utils/logger.py`)
+Error Example
+Input Screenshots
+Two identical login page screenshots
 
-Comprehensive logging for all agent activities:
+ImageDiffAgent Output
+{
+  "error": "IMAGES_TOO_SIMILAR"
+}
 
-```python
-class UIRegressionLogger:
-    def log_minor_issue(self, issue)      # → logs/minor_issues.jsonl
-    def log_critical_issue(self, issue)   # → logs/critical_issues.jsonl
-    def log_expected_change(self, change) # → logs/expected_changes.jsonl
-```
+Final Output
+{
+  "status": "error",
+  "message": "Images are too similar to detect meaningful differences"
+}
 
-## 🧪 Testing
+Constraints
+The challenge focuses on implementing specific components while leveraging existing infrastructure:
 
-Run the test suite to validate your implementation:
+Implement prompts for ImageDiffAgent and ClassificationAgent in text files.
+Implement Python logic for OrchestratorAgent methods and JIRA operations.
+Work with provided tools and infrastructure:
+llm.py for LLM calls and vision processing
+mcp_servers/jira.py for JIRA ticket operations  
+constants/ for ticket status, priority, and user definitions
+All agent scaffolding and workflow orchestration is provided.
 
-```bash
-# Run all tests
-python -m pytest
+Error handling is mandatory:
+ImageDiffAgent must detect and report similar images or invalid image types
+ClassificationAgent must handle cases with no differences or no matching tickets
+OrchestratorAgent must validate successful JIRA operations and handle failures
 
-# Run specific test categories
-python -m pytest tests/test_ui_regression_agent.py::TestImageDiffAgent
-```
+Output format requirements:
+ImageDiffAgent returns list of difference objects with description, element_type, severity
+ClassificationAgent returns three lists: resolved_tickets, pending_tickets, new_tickets  
+OrchestratorAgent returns summary with ticket counts and action details
+Error cases return status "error" with descriptive message
 
-### Test Scenarios
+Implementation Guide
+Build the working UI regression agent by completing these components:
 
-The test suite covers:
-- ✅ Image encoding and processing
-- ✅ LLM integration and error handling
-- ✅ JIRA ticket operations
-- ✅ Action execution and validation
-- ✅ Expected regression scenarios
+### Prompts
+prompts/image_diff_agent.txt - LLM prompt for screenshot comparison and difference detection
+prompts/classification_agent.txt - LLM prompt for analyzing differences against JIRA tickets
 
-## 📊 Expected Output
+### Python Code  
+src/orchestrator_agent.py methods:
+execute_actions() - Main orchestration method
+update_resolved_tickets() - Mark completed tickets as done
+update_pending_tickets() - Move tickets to on_hold with comments
+create_tickets_for_new_issues() - Create JIRA tickets for critical issues
 
-When you run the agent, you should see:
+### Streamlit Web Interface
+The project includes a beautiful web interface built with Streamlit for interactive testing and visualization:
 
-```
-🔍 Starting UI Regression Analysis...
-📸 Baseline: screenshots/login_baseline.png
-📸 Updated: screenshots/login_updated.png
---------------------------------------------------
-✅ Status: completed
-🔍 Differences Found: 4
-⚡ Actions Taken: 3
-✅ Validation: Successful
+Run and Test
+# Run the app
+bash setup/run.sh
 
-📊 Summary Report:
-  • Minor Issues: 1
-  • Critical Issues: 2
-  • Expected Changes: 1
-  • Actions Taken: 3
+# Run test cases
+bash setup/test.sh
 
-🎯 Actions Taken:
-  • 📝 Minor Issue Logged
-  • 🎫 JIRA Ticket Created: UI-005
-  • 🎫 JIRA Ticket Created: UI-006
-  • ✅ Expected Change Confirmed (JIRA: UI-002)
-```
-
-## 🎓 Learning Objectives
-
-By completing this challenge, you'll learn:
-
-1. **Multi-modal AI**: Using LLM vision capabilities for image analysis
-2. **Agent Architecture**: Building complex, stateful AI agents
-3. **Integration Patterns**: Working with external systems (JIRA) via MCP
-4. **Error Handling**: Robust error handling in async environments
-5. **Testing**: Comprehensive testing of AI agent systems
-6. **Real-world Applications**: Practical automation for QA workflows
-
-## 🏆 Success Criteria
-
-Your agent should:
-- ✅ Correctly identify all 4 UI differences
-- ✅ Properly classify each change (MINOR/CRITICAL/EXPECTED)
-- ✅ Take appropriate actions (log/escalate/confirm)
-- ✅ Validate all actions completed successfully
-- ✅ Pass all test cases
-- ✅ Handle errors gracefully
-
-## 🚨 Common Pitfalls
-
-1. **Image Processing**: Ensure proper base64 encoding for LLM vision
-2. **Async Handling**: All JIRA operations are async - don't forget `await`
-3. **JSON Parsing**: LLM responses need robust JSON parsing with error handling
-4. **File Paths**: Use absolute paths for cross-platform compatibility
-5. **Validation**: Always validate that actions actually succeeded
-
-## 🔍 Debugging Tips
-
-1. **Check Logs**: All activities are logged in the `logs/` directory
-2. **Use Streamlit**: The web interface shows detailed analysis results
-3. **Mock Responses**: Test with mocked LLM responses first
-4. **JIRA Server**: Ensure the MCP JIRA server is running
-5. **Image Files**: Verify screenshot files exist and are readable
-
-## 🌟 Extensions
-
-Once you've completed the basic challenge, try these extensions:
-
-1. **Batch Processing**: Handle multiple screenshot pairs
-2. **Confidence Scores**: Add confidence levels to classifications
-3. **Historical Analysis**: Track regression trends over time
-4. **Custom Rules**: Add configurable business rules
-5. **Slack Integration**: Send notifications to team channels
-
-## 📚 Resources
-
-- [LlamaIndex Documentation](https://docs.llamaindex.ai/)
-- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
-- [OpenAI Vision API](https://platform.openai.com/docs/guides/vision)
-- [Streamlit Documentation](https://docs.streamlit.io/)
-
-## 🤝 Support
-
-If you get stuck:
-1. Check the test cases for expected behavior
-2. Review the logs for detailed error information
-3. Use the Streamlit interface for visual debugging
-4. Refer to the comprehensive docstrings in the code
-
----
-
-**Good luck building your UI Regression Agent! 🚀**
+## Tips for Success
+Focus on prompt writing - Clear, specific prompts lead to better LLM outputs
+Test incrementally - Run tests after implementing each method
+Use the provided examples - Study the test data to understand expected outputs
+Handle edge cases - Consider empty data, malformed inputs, and error scenarios
+Use the Streamlit app - Visualize your results and test interactively

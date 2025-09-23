@@ -24,7 +24,7 @@ class ClassificationAgent:
                 os.path.dirname(__file__),
                 "..",
                 "prompts",
-                "difference_analysis.txt",
+                "classification_agent.txt",
             )
             with open(prompt_path, "r", encoding="utf-8") as f:
                 return f.read().strip()
@@ -42,8 +42,8 @@ class ClassificationAgent:
             self.logger.logger.info("No differences to analyze")
             return {
                 "resolved_tickets": [],
-                "tickets_needing_work": [],
-                "new_issues": [],
+                "pending_tickets": [],
+                "new_tickets": [],
             }
 
         all_tickets = await self.jira.get_all_tickets()
