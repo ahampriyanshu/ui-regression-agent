@@ -218,6 +218,43 @@ def update_ticket_assignee(ticket_id: str, new_assignee: str) -> Dict:
 
 
 @mcp.tool()
+def update_ticket_comment(ticket_id: str, comment: str) -> Dict:
+    """Update ticket comment"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Update ticket comment and updated timestamp
+        timestamp = datetime.now().isoformat() + "Z"
+        cursor.execute(
+            """
+            UPDATE jira_tickets 
+            SET comment = ?, updated = ? 
+            WHERE id = ?
+        """,
+            (comment, timestamp, ticket_id),
+        )
+
+        if cursor.rowcount == 0:
+            conn.close()
+            return {"success": False, "error": f"Ticket {ticket_id} not found"}
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "ticket_id": ticket_id,
+            "comment": comment,
+            "updated": timestamp,
+        }
+
+    except Exception as e:
+        logger.error("Error updating ticket comment: %s", e)
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
 def create_ticket(
     title: str,
     description: str,
@@ -226,6 +263,7 @@ def create_ticket(
     assignee: str,
     reporter: str,
     status: str,
+    comment: str = None,
 ) -> Dict:
     """Create a new JIRA ticket"""
     try:
@@ -248,8 +286,8 @@ def create_ticket(
             """
             INSERT INTO jira_tickets (
                 id, title, description, status, priority, type,
-                created, updated, assignee, reporter
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                created, updated, assignee, reporter, comment
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 ticket_id,
@@ -262,6 +300,7 @@ def create_ticket(
                 timestamp,
                 assignee,
                 reporter,
+                comment,
             ),
         )
 
@@ -323,6 +362,12 @@ class JIRAMCPServer:
         """Update ticket assignee"""
         return update_ticket_assignee(ticket_id, new_assignee)
 
+    async def update_ticket_comment(
+        self, ticket_id: str, comment: str
+    ) -> Dict:
+        """Update ticket comment"""
+        return update_ticket_comment(ticket_id, comment)
+
     async def create_ticket(
         self,
         title: str,
@@ -332,6 +377,7 @@ class JIRAMCPServer:
         assignee: str,
         reporter: str,
         status: str,
+        comment: str = None,
     ) -> Dict:
         """Create a new ticket"""
         return create_ticket(
@@ -342,6 +388,7 @@ class JIRAMCPServer:
             assignee,
             reporter,
             status,
+            comment,
         )
 
 

@@ -1,5 +1,11 @@
 from typing import Dict, List
 
+from constants import (
+    TicketPriority,
+    TicketStatus,
+    TicketType,
+    Users,
+)
 from mcp_servers.jira import JIRAMCPServer
 from utils.logger import ui_logger
 
@@ -24,7 +30,7 @@ class OrchestratorAgent:
                     f"Updating ticket {ticket_id} status to Done"
                 )
                 updated_ticket = await self.jira.update_ticket_status(
-                    ticket_id, "Done"
+                    ticket_id, TicketStatus.DONE.value
                 )
                 if updated_ticket:
                     updated_tickets.append(updated_ticket)
@@ -38,21 +44,28 @@ class OrchestratorAgent:
 
         return updated_tickets
 
-    async def update_tickets_needing_work(
-        self, tickets_needing_work: List[Dict]
+    async def update_pending_tickets(
+        self, pending_tickets: List[Dict]
     ) -> List[Dict]:
-        """Update status of tickets needing work to 'Changes Requested'"""
+        """Update status of pending tickets to 'on_hold' and add comment"""
         updated_tickets = []
 
-        for ticket_info in tickets_needing_work:
+        for ticket_info in pending_tickets:
             ticket_id = ticket_info.get("ticket_id")
             if ticket_id:
+                reason = ticket_info.get("reason", "Needs further work")
                 self.logger.logger.info(
-                    f"Updating ticket {ticket_id} status to Changes Requested"
+                    f"Updating ticket {ticket_id} status to on_hold with comment"
                 )
+                
+                # Update status to on_hold
                 updated_ticket = await self.jira.update_ticket_status(
-                    ticket_id, "Changes Requested"
+                    ticket_id, TicketStatus.ON_HOLD.value
                 )
+                
+                # Add comment with reason
+                if updated_ticket:
+                    await self.jira.update_ticket_comment(ticket_id, reason)
                 if updated_ticket:
                     updated_tickets.append(updated_ticket)
                     self.logger.logger.info(
@@ -66,36 +79,39 @@ class OrchestratorAgent:
         return updated_tickets
 
     async def create_tickets_for_critical_issues(
-        self, new_issues: List[Dict]
+        self, new_tickets: List[Dict]
     ) -> List[Dict]:
-        """Create JIRA tickets for critical new issues"""
+        """Create JIRA tickets for new issues"""
         created_tickets = []
 
-        for issue in new_issues:
-            if issue.get("severity") == "critical":
-                title = issue.get("title", "UI Regression Issue")
-                description = issue.get(
-                    "description",
-                    "Critical UI issue detected during regression testing",
-                )
-
+        for ticket_data in new_tickets:
+            title = ticket_data.get("title", "UI Regression Issue")
+            description = ticket_data.get(
+                "description",
+                "UI issue detected during regression testing",
+            )
+            severity = ticket_data.get("severity", "minor")
+            
+            # Only create JIRA tickets for critical issues
+            if severity == "critical":
                 self.logger.logger.info(
                     f"Creating JIRA ticket for critical issue: {title}"
                 )
                 new_ticket = await self.jira.create_ticket(
                     title=title,
                     description=description,
-                    priority="High",
-                    ticket_type="Bug",
-                    assignee="frontend.dev",
-                    reporter="ui_regression.agent",
-                    status="Todo",
+                    priority=ticket_data.get("priority", TicketPriority.HIGH.value),
+                    ticket_type=ticket_data.get("type", TicketType.FIX.value),
+                    assignee=ticket_data.get("assignee", Users.FRONTEND_DEV.value),
+                    reporter=ticket_data.get("reporter", Users.UI_REGRESSION_AGENT.value),
+                    status=ticket_data.get("status", TicketStatus.TODO.value),
                 )
 
-                if new_ticket:
-                    created_tickets.append(new_ticket)
+                if new_ticket and new_ticket.get("success"):
+                    created_ticket = new_ticket.get("ticket", {})
+                    created_tickets.append(created_ticket)
                     self.logger.logger.info(
-                        f"Created JIRA ticket: {new_ticket['id']}"
+                        f"Created JIRA ticket: {created_ticket.get('id', 'Unknown')}"
                     )
                 else:
                     self.logger.logger.error(
@@ -104,38 +120,12 @@ class OrchestratorAgent:
 
         return created_tickets
 
-    def log_minor_issues(self, new_issues: List[Dict]) -> None:
-        """Log minor issues to the minor_issues.json file"""
-        minor_issues = [
-            issue for issue in new_issues if issue.get("severity") == "minor"
-        ]
-
-        if not minor_issues:
-            return
-
-        for issue in minor_issues:
-            issue_data = {
-                "title": issue.get("title", "Minor UI Issue"),
-                "description": issue.get(
-                    "description", "Minor issue detected"
-                ),
-                "element_type": issue.get("element_type", "unknown"),
-                "location": issue.get("location", "unknown"),
-                "severity": "minor",
-            }
-
-            self.logger.log_minor_issue(issue_data)
-            self.logger.logger.info(
-                f"Logged minor issue: {issue_data['title']}"
-            )
-
     async def execute_actions(self, analysis: Dict) -> Dict:
         """Execute all actions based on the classification analysis"""
         results = {
             "resolved_tickets": [],
-            "updated_tickets": [],
-            "created_tickets": [],
-            "minor_issues_logged": 0,
+            "pending_tickets": [],
+            "new_tickets": [],
         }
 
         if analysis.get("resolved_tickets"):
@@ -143,29 +133,15 @@ class OrchestratorAgent:
                 analysis["resolved_tickets"]
             )
 
-        if analysis.get("tickets_needing_work"):
-            results["updated_tickets"] = (
-                await self.update_tickets_needing_work(
-                    analysis["tickets_needing_work"]
-                )
+        if analysis.get("pending_tickets"):
+            results["pending_tickets"] = await self.update_pending_tickets(
+                analysis["pending_tickets"]
             )
 
-        if analysis.get("new_issues"):
-            results["created_tickets"] = (
-                await self.create_tickets_for_critical_issues(
-                    analysis["new_issues"]
-                )
+        if analysis.get("new_tickets"):
+            results["new_tickets"] = await self.create_tickets_for_critical_issues(
+                analysis["new_tickets"]
             )
-
-            self.log_minor_issues(analysis["new_issues"])
-            minor_count = len(
-                [
-                    i
-                    for i in analysis["new_issues"]
-                    if i.get("severity") == "minor"
-                ]
-            )
-            results["minor_issues_logged"] = minor_count
 
         return results
 
@@ -176,7 +152,6 @@ class OrchestratorAgent:
             "resolved_tickets_count": len(results.get("resolved_tickets", [])),
             "updated_tickets_count": len(results.get("updated_tickets", [])),
             "created_tickets_count": len(results.get("created_tickets", [])),
-            "minor_issues_logged": results.get("minor_issues_logged", 0),
             "validation_details": [],
         }
 
@@ -195,9 +170,5 @@ class OrchestratorAgent:
                 f"Successfully created {len(results['created_tickets'])} new JIRA tickets"
             )
 
-        if results.get("minor_issues_logged", 0) > 0:
-            validation_results["validation_details"].append(
-                f"Successfully logged {results['minor_issues_logged']} minor issues"
-            )
 
         return validation_results

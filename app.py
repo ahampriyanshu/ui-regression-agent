@@ -24,7 +24,6 @@ async def run_regression_test(baseline_path: str, updated_path: str) -> Dict:
     orchestrator_agent = OrchestratorAgent()
     logger = ui_logger
 
-    logger.initialize_logs()
     logger.logger.info("Starting UI regression test")
 
     try:
@@ -61,27 +60,18 @@ async def run_regression_test(baseline_path: str, updated_path: str) -> Dict:
         logger.logger.info("Phase 3: Action execution and workflow management")
         results = await orchestrator_agent.execute_actions(analysis)
 
-        validation = await orchestrator_agent.validate_actions(results)
-
         summary = logger.get_summary_report()
 
         result = {
             "status": "completed",
             "differences_found": len(differences["differences"]),
-            "actions_taken": len(results.get("resolved_tickets", []))
-            + len(results.get("updated_tickets", []))
-            + len(results.get("created_tickets", []))
-            + results.get("minor_issues_logged", 0),
-            "validation_successful": len(
-                validation.get("validation_details", [])
-            )
-            > 0,
+            "jira_updates": len(results.get("resolved_tickets", []))
+            + len(results.get("pending_tickets", []))
+            + len(results.get("new_tickets", [])),
             "summary": summary,
             "details": {
                 "differences": differences,
-                "analysis": analysis,
                 "results": results,
-                "validation": validation,
             },
         }
 
@@ -119,47 +109,33 @@ async def run_cli_mode(baseline_path: str, updated_path: str):
         print(f"✅ Status: {result['status']}")
 
         if result["status"] == "completed":
-            print(f"🔍 Differences Found: {result['differences_found']}")
-            print(f"⚡ Actions Taken: {result['actions_taken']}")
-            print(
-                f"✅ Validation: {'Successful' if result['validation_successful'] else 'Failed'}"
-            )
-
-            summary = result["summary"]
-            print("\n📊 Summary Report:")
-            print(f"  • Minor Issues: {summary['minor_issues']}")
+            print(f"🔍 UI Changes Detected: {result['differences_found']}")
 
             results = result["details"]["results"]
             if any(
                 [
                     results.get("resolved_tickets"),
-                    results.get("updated_tickets"),
-                    results.get("created_tickets"),
-                    results.get("minor_issues_logged", 0) > 0,
+                    results.get("pending_tickets"),
+                    results.get("new_tickets"),
                 ]
             ):
-                print("\n🎯 Actions Taken:")
+                print("\n📋 JIRA Ticket Updates:")
 
                 if results.get("resolved_tickets"):
                     for ticket in results["resolved_tickets"]:
-                        print(
-                            f"  • ✅ Ticket Resolved: {ticket['id']} (Status: Done)"
-                        )
+                        ticket_id = ticket.get('ticket_id', ticket.get('id', 'Unknown'))
+                        print(f"  • ✅ Completed: {ticket_id}")
 
-                if results.get("updated_tickets"):
-                    for ticket in results["updated_tickets"]:
-                        print(
-                            f"  • 🔄 Ticket Updated: {ticket['id']} (Status: Changes Requested)"
-                        )
+                if results.get("pending_tickets"):
+                    for ticket in results["pending_tickets"]:
+                        ticket_id = ticket.get('ticket_id', ticket.get('id', 'Unknown'))
+                        print(f"  • 🔄 Needs Work: {ticket_id}")
 
-                if results.get("created_tickets"):
-                    for ticket in results["created_tickets"]:
-                        print(f"  • 🎫 JIRA Ticket Created: {ticket['id']}")
+                if results.get("new_tickets"):
+                    for ticket in results["new_tickets"]:
+                        ticket_id = ticket.get('id', ticket.get('ticket_id', 'Unknown'))
+                        print(f"  • 🆕 New Issue: {ticket_id}")
 
-                if results.get("minor_issues_logged", 0) > 0:
-                    print(
-                        f"  • 📝 Minor Issues Logged: {results['minor_issues_logged']}"
-                    )
 
         elif result["status"] == "success":
             print(f"✅ {result['message']}")
@@ -312,49 +288,22 @@ def display_results(result):
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("🔍 Differences Found", result.get("differences_found", 0))
+        st.metric("🔍 UI Changes", result.get("differences_found", 0))
 
     with col2:
-        st.metric("⚡ Actions Taken", result.get("actions_taken", 0))
+        ticket_updates = result.get("jira_updates", 0)
+        st.metric("📋 JIRA Updates", ticket_updates)
 
     with col3:
-        validation_status = (
-            "✅ Success"
-            if result.get("validation_successful")
-            else "❌ Failed"
-        )
-        st.metric("✅ Validation", validation_status)
+        timestamp = result.get("summary", {}).get("timestamp", "N/A")
+        if timestamp != "N/A":
+            timestamp = timestamp[:19].replace("T", " ")
+        st.metric("⏰ Completed", timestamp)
 
     with col4:
-        summary = result.get("summary", {})
-        total_issues = summary.get("minor_issues", 0) + summary.get(
-            "critical_issues", 0
-        )
-        st.metric("🚨 Total Issues", total_issues)
+        status = result.get("status", "unknown").title()
+        st.metric("✅ Status", status)
 
-    if "summary" in result:
-        st.subheader("📈 Summary Report")
-        summary = result["summary"]
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.write("**Issue Breakdown:**")
-            st.write(f"• Minor Issues: {summary.get('minor_issues', 0)}")
-            st.write(f"• Critical Issues: {summary.get('critical_issues', 0)}")
-            st.write(
-                f"• Expected Changes: {summary.get('expected_changes', 0)}"
-            )
-
-        with col2:
-            st.write("**Actions Summary:**")
-            st.write(f"• Actions Taken: {summary.get('actions_taken', 0)}")
-            st.write(
-                f"• Successful Validations: {summary.get('successful_validations', 0)}"
-            )
-            st.write(
-                f"• Failed Validations: {summary.get('failed_validations', 0)}"
-            )
 
     if "details" in result and "differences" in result["details"]:
         st.subheader("🔍 Differences Detected")

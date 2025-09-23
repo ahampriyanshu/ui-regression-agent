@@ -2,7 +2,7 @@ version: 1
 configuration:
   has_webserver: true
   scoring:
-    command: pip install -r requirements.txt && python mcp_servers/jira_server.py && python3 -m pytest src/test_agent.py --junit-xml=unit.xml
+    command: pip install -r requirements.txt && python mcp_servers/jira.py && python3 -m pytest src/test_agent.py --junit-xml=unit.xml
     files:
       - unit.xml
   ide_config:
@@ -13,7 +13,7 @@ configuration:
     project_menu:
         run: streamlit run app.py --server.port 8000
         install: pip install -r requirements.txt
-        test: python mcp_servers/jira_server.py && python3 -m pytest src/test_agent.py --junit-xml=unit.xml
+        test: python mcp_servers/jira.py && python3 -m pytest --junit-xml=unit.xml
   readonly_paths:
     - src/__init__.py
     - app.py
@@ -23,5 +23,5 @@ configuration:
     - hackerrank.yml
     - screenshots/baseline.png
     - screenshots/updated.png
-    - mcp_servers/jira_server.py
+    - mcp_servers/jira.py
     - src/utils/logger.py

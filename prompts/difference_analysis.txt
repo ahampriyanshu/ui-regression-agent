@@ -30,27 +30,25 @@ Return your analysis in this EXACT JSON format (no markdown, no extra text):
   "resolved_tickets": [
     {
       "ticket_id": "UI-001",
-      "difference_id": 0,
       "reason": "Change correctly implements the described functionality"
     }
   ],
-  "tickets_needing_work": [
+  "pending_tickets": [
     {
-      "ticket_id": "UI-002", 
-      "difference_id": 1,
-      "reason": "Partial implementation - missing key feature",
-      "expected": "What was expected from ticket",
-      "actual": "What was actually implemented"
+      "ticket_id": "UI-002",
+      "reason": "Partial implementation - missing key feature"
     }
   ],
-  "new_issues": [
+  "new_tickets": [
     {
-      "difference_id": 2,
-      "severity": "critical|minor",
       "title": "Brief title for the issue",
       "description": "Detailed description of the regression",
-      "element_type": "UI element affected",
-      "location": "Where the issue appears"
+      "severity": "critical|minor",
+      "priority": "high|medium|low",
+      "type": "feature|fix|perf_improvement",
+      "assignee": "frontend.dev|backend.dev|product.tester",
+      "reporter": "ui_regression.agent",
+      "status": "todo"
     }
   ]
 }
@@ -58,12 +56,12 @@ Return your analysis in this EXACT JSON format (no markdown, no extra text):
 ## IMPORTANT RULES:
 1. Return ONLY pure JSON - no markdown formatting, no explanations
 2. Each difference must be categorized into exactly ONE category
-3. Use difference_id to reference the differences from the input
-4. For resolved_tickets: ticket_id must exist in the provided JIRA tickets
-5. For tickets_needing_work: ticket_id must exist in the provided JIRA tickets
-6. For new_issues: provide all required fields for ticket creation
-7. Be precise in matching - only mark as resolved if implementation is correct
-8. Consider user impact when assigning severity to new issues
+3. For resolved_tickets: ticket_id must exist in the provided JIRA tickets
+4. For pending_tickets: ticket_id must exist in the provided JIRA tickets
+5. For new_tickets: provide all required fields for ticket creation
+6. Be precise in matching - only mark as resolved if implementation is correct
+7. Consider user impact when assigning severity to new issues
+8. Use constants: severity (critical|minor), priority (high|medium|low), type (feature|fix|perf_improvement)
 
 ## MATCHING GUIDELINES:
 - Look for keyword matches between difference descriptions and JIRA titles/descriptions

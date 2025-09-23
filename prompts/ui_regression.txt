@@ -30,11 +30,9 @@ Return your analysis in this EXACT JSON format (no additional text, no markdown 
 {
   "differences": [
     {
+      "description": "clear description of what changed",
       "element_type": "type of UI element (button, input, text, etc.)",
-      "change_description": "clear description of what changed",
-      "location": "specific location in the interface",
-      "severity": "high|medium|low",
-      "details": "additional technical details about the change"
+      "severity": "high|medium|low"
     }
   ]
 }

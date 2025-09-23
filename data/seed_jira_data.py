@@ -35,7 +35,8 @@ def create_jira_database():
             created TEXT NOT NULL,
             updated TEXT NOT NULL,
             assignee TEXT NOT NULL,
-            reporter TEXT NOT NULL
+            reporter TEXT NOT NULL,
+            comment TEXT
         )
     """
     )
@@ -60,8 +61,8 @@ def create_jira_database():
             """
             INSERT INTO jira_tickets (
                 id, title, description, status, priority, type,
-                created, updated, assignee, reporter
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                created, updated, assignee, reporter, comment
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 ticket_data["id"],
@@ -74,6 +75,7 @@ def create_jira_database():
                 ticket_data["updated"],
                 ticket_data["assignee"],
                 ticket_data["reporter"],
+                ticket_data.get("comment"),
             ),
         )
 

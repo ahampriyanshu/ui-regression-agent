@@ -136,7 +136,6 @@ class TestImageDiffAgent(unittest.TestCase):
                 {"id": "UI-002", "status": "Changes Requested"}
             ],
             "created_tickets": [{"id": "UI-005", "title": "Test Issue"}],
-            "minor_issues_logged": 2,
         }
 
         async def run_test():
@@ -149,7 +148,6 @@ class TestImageDiffAgent(unittest.TestCase):
         self.assertEqual(result["resolved_tickets_count"], 1)
         self.assertEqual(result["updated_tickets_count"], 1)
         self.assertEqual(result["created_tickets_count"], 1)
-        self.assertEqual(result["minor_issues_logged"], 2)
 
     def test_comprehensive_regression_workflow(self):
         """Test complete regression workflow with status updates"""
