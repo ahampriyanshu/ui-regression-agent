@@ -3,7 +3,6 @@ JIRA MCP Server - SQLite-based implementation for UI regression testing
 Provides persistent storage across different processes (app vs tests)
 """
 
-import logging
 import os
 import sqlite3
 from datetime import datetime
@@ -11,9 +10,7 @@ from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
 
-logger = logging.getLogger(__name__)
 
-# Database path
 DB_PATH = os.path.join(
     os.path.dirname(__file__), "..", "data", "databases", "jira.db"
 )
@@ -47,8 +44,7 @@ def get_all_tickets() -> List[Dict]:
 
         conn.close()
         return tickets
-    except Exception as e:
-        logger.error("Error fetching all tickets: %s", e)
+    except Exception:
         return []
 
 
@@ -65,8 +61,7 @@ def get_ticket(ticket_id: str) -> Optional[Dict]:
 
         conn.close()
         return ticket
-    except Exception as e:
-        logger.error("Error fetching ticket %s: %s", ticket_id, e)
+    except Exception:
         return None
 
 
@@ -90,8 +85,7 @@ def search_tickets(query: str) -> List[Dict]:
         tickets = cursor.fetchall()
         conn.close()
         return tickets
-    except Exception as e:
-        logger.error("Error searching tickets: %s", e)
+    except Exception:
         return []
 
 
@@ -111,8 +105,7 @@ def get_tickets_by_status(status: str) -> List[Dict]:
         tickets = cursor.fetchall()
         conn.close()
         return tickets
-    except Exception as e:
-        logger.error("Error fetching tickets by status %s: %s", status, e)
+    except Exception:
         return []
 
 
@@ -132,8 +125,7 @@ def get_tickets_by_assignee(assignee: str) -> List[Dict]:
         tickets = cursor.fetchall()
         conn.close()
         return tickets
-    except Exception as e:
-        logger.error("Error fetching tickets by assignee %s: %s", assignee, e)
+    except Exception:
         return []
 
 
@@ -144,7 +136,6 @@ def update_ticket_status(ticket_id: str, new_status: str) -> Dict:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Check if ticket exists
         cursor.execute(
             "SELECT id FROM jira_tickets WHERE id = ?", (ticket_id,)
         )
@@ -152,7 +143,6 @@ def update_ticket_status(ticket_id: str, new_status: str) -> Dict:
             conn.close()
             return {"success": False, "error": f"Ticket {ticket_id} not found"}
 
-        # Update status and timestamp
         updated_time = datetime.now().isoformat() + "Z"
         cursor.execute(
             """
@@ -172,9 +162,8 @@ def update_ticket_status(ticket_id: str, new_status: str) -> Dict:
             "new_status": new_status,
             "updated": updated_time,
         }
-    except Exception as e:
-        logger.error("Error updating ticket status: %s", e)
-        return {"success": False, "error": str(e)}
+    except Exception:
+        return {"success": False, "error": "Update failed"}
 
 
 @mcp.tool()
@@ -184,7 +173,6 @@ def update_ticket_assignee(ticket_id: str, new_assignee: str) -> Dict:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Check if ticket exists
         cursor.execute(
             "SELECT id FROM jira_tickets WHERE id = ?", (ticket_id,)
         )
@@ -192,7 +180,6 @@ def update_ticket_assignee(ticket_id: str, new_assignee: str) -> Dict:
             conn.close()
             return {"success": False, "error": f"Ticket {ticket_id} not found"}
 
-        # Update assignee and timestamp
         updated_time = datetime.now().isoformat() + "Z"
         cursor.execute(
             """
@@ -212,9 +199,8 @@ def update_ticket_assignee(ticket_id: str, new_assignee: str) -> Dict:
             "new_assignee": new_assignee,
             "updated": updated_time,
         }
-    except Exception as e:
-        logger.error("Error updating ticket assignee: %s", e)
-        return {"success": False, "error": str(e)}
+    except Exception:
+        return {"success": False, "error": "Assignee update failed"}
 
 
 @mcp.tool()
@@ -224,7 +210,6 @@ def update_ticket_comment(ticket_id: str, comment: str) -> Dict:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Update ticket comment and updated timestamp
         timestamp = datetime.now().isoformat() + "Z"
         cursor.execute(
             """
@@ -249,9 +234,8 @@ def update_ticket_comment(ticket_id: str, comment: str) -> Dict:
             "updated": timestamp,
         }
 
-    except Exception as e:
-        logger.error("Error updating ticket comment: %s", e)
-        return {"success": False, "error": str(e)}
+    except Exception:
+        return {"success": False, "error": "Comment update failed"}
 
 
 @mcp.tool()
@@ -270,19 +254,13 @@ def create_ticket(
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Get next ticket number based on existing tickets
-        # Get current count of UI tickets to generate next UI ID
         cursor.execute("SELECT COUNT(*) FROM jira_tickets WHERE id LIKE 'UI-%'")
         count_result = cursor.fetchone()
         next_number = (count_result[0] if count_result else 0) + 1
 
-        # Generate ticket ID
         ticket_id = f"UI-{next_number:03d}"
 
-        # Create timestamp
         timestamp = datetime.now().isoformat() + "Z"
-
-        # Insert new ticket
         cursor.execute(
             """
             INSERT INTO jira_tickets (
@@ -323,9 +301,8 @@ def create_ticket(
                 "reporter": reporter,
             },
         }
-    except Exception as e:
-        logger.error("Error creating ticket: %s", e)
-        return {"success": False, "error": str(e)}
+    except Exception:
+        return {"success": False, "error": "Ticket creation failed"}
 
 
 class JIRAMCPServer:
@@ -394,11 +371,9 @@ class JIRAMCPServer:
 
 
 if __name__ == "__main__":
-    # For testing the server directly
     print("JIRA MCP Server")
     print(f"Database path: {DB_PATH}")
 
-    # Test basic functionality
     tickets = get_all_tickets()
     print(f"Found {len(tickets)} tickets")
 

@@ -38,7 +38,6 @@ class TestUIRegressionAgent(unittest.TestCase):
             "User must create prompts/image_diff_agent.txt with proper UI comparison prompt"
         )
         
-        # Verify prompt is not empty
         with open(prompt_path, 'r') as f:
             content = f.read().strip()
             self.assertGreater(
@@ -56,7 +55,6 @@ class TestUIRegressionAgent(unittest.TestCase):
             "User must create prompts/classification_agent.txt with proper classification prompt"
         )
         
-        # Verify prompt is not empty
         with open(prompt_path, 'r') as f:
             content = f.read().strip()
             self.assertGreater(
@@ -66,46 +64,42 @@ class TestUIRegressionAgent(unittest.TestCase):
 
     def test_orchestrator_agent_methods_exist(self):
         """Test that OrchestratorAgent has required methods (user must implement these)"""
-        # Check that key methods exist
         self.assertTrue(
-            hasattr(self.orchestrator_agent, 'execute_actions'),
-            "User must implement execute_actions method in OrchestratorAgent"
+            hasattr(self.orchestrator_agent, 'orchestrate_jira_workflow'),
+            "User must implement orchestrate_jira_workflow method in OrchestratorAgent"
         )
         
         self.assertTrue(
-            hasattr(self.orchestrator_agent, 'update_resolved_tickets'),
-            "User must implement update_resolved_tickets method in OrchestratorAgent"
+            hasattr(self.orchestrator_agent, 'update_resolved_issues'),
+            "User must implement update_resolved_issues method in OrchestratorAgent"
         )
         
         self.assertTrue(
-            hasattr(self.orchestrator_agent, 'update_pending_tickets'),
-            "User must implement update_pending_tickets method in OrchestratorAgent"
+            hasattr(self.orchestrator_agent, 'update_pending_issues'),
+            "User must implement update_pending_issues method in OrchestratorAgent"
         )
         
         self.assertTrue(
-            hasattr(self.orchestrator_agent, 'create_tickets_for_critical_issues'),
-            "User must implement create_tickets_for_critical_issues method in OrchestratorAgent"
+            hasattr(self.orchestrator_agent, 'create_new_issues'),
+            "User must implement create_new_issues method in OrchestratorAgent"
         )
 
-    def test_orchestrator_execute_actions_structure(self):
-        """Test that OrchestratorAgent.execute_actions returns correct structure (user implements logic)"""
+    def test_orchestrator_orchestrate_jira_workflow_structure(self):
+        """Test that OrchestratorAgent.orchestrate_jira_workflow returns correct structure (user implements logic)"""
         async def run_test():
-            # Test with empty analysis (should not fail)
             empty_analysis = {
                 "resolved_tickets": [],
                 "pending_tickets": [],
                 "new_tickets": []
             }
             
-            result = await self.orchestrator_agent.execute_actions(empty_analysis)
-            
-            # Verify return structure (what user's implementation should return)
-            self.assertIsInstance(result, dict, "execute_actions must return a dictionary")
+            result = await self.orchestrator_agent.orchestrate_jira_workflow(empty_analysis)
+
+            self.assertIsInstance(result, dict, "orchestrate_jira_workflow must return a dictionary")
             self.assertIn("resolved_tickets", result, "Result must contain resolved_tickets")
             self.assertIn("pending_tickets", result, "Result must contain pending_tickets")
             self.assertIn("new_tickets", result, "Result must contain new_tickets")
             
-            # All should be lists
             self.assertIsInstance(result["resolved_tickets"], list)
             self.assertIsInstance(result["pending_tickets"], list)
             self.assertIsInstance(result["new_tickets"], list)
@@ -123,9 +117,8 @@ class TestUIRegressionAgent(unittest.TestCase):
                 "new_tickets": []
             }
             
-            result = await self.orchestrator_agent.execute_actions(mock_analysis)
+            result = await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
             
-            # Verify resolved tickets are processed
             self.assertGreaterEqual(
                 len(result["resolved_tickets"]), 0,
                 "User's implementation should process resolved tickets"
@@ -144,9 +137,8 @@ class TestUIRegressionAgent(unittest.TestCase):
                 "new_tickets": []
             }
             
-            result = await self.orchestrator_agent.execute_actions(mock_analysis)
+            result = await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
             
-            # Verify pending tickets are processed
             self.assertGreaterEqual(
                 len(result["pending_tickets"]), 0,
                 "User's implementation should process pending tickets"
@@ -174,9 +166,8 @@ class TestUIRegressionAgent(unittest.TestCase):
                 ]
             }
             
-            result = await self.orchestrator_agent.execute_actions(mock_analysis)
+            result = await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
             
-            # Verify new tickets are processed (critical ones should create JIRA tickets)
             self.assertGreaterEqual(
                 len(result["new_tickets"]), 0,
                 "User's implementation should process new critical tickets"
@@ -186,10 +177,8 @@ class TestUIRegressionAgent(unittest.TestCase):
 
     def test_orchestrator_uses_constants(self):
         """Test that OrchestratorAgent uses constants from constants module (user should follow this pattern)"""
-        # Test that constants are imported and used
         from constants import TicketStatus, TicketPriority, TicketType, Users
         
-        # Verify constants exist (user should use these in their implementation)
         self.assertTrue(hasattr(TicketStatus, 'DONE'))
         self.assertTrue(hasattr(TicketStatus, 'ON_HOLD'))
         self.assertTrue(hasattr(TicketStatus, 'TODO'))
@@ -200,7 +189,6 @@ class TestUIRegressionAgent(unittest.TestCase):
         """Test that ImageDiffAgent prompt contains required elements (user must include these)"""
         prompt_content = self.image_diff_agent._load_ui_regression_prompt()
         
-        # Check for key elements that should be in the prompt
         required_elements = [
             "differences",  # Should ask for differences
             "json",        # Should request JSON format
@@ -219,7 +207,6 @@ class TestUIRegressionAgent(unittest.TestCase):
         """Test that ClassificationAgent prompt contains required elements (user must include these)"""
         prompt_content = self.classification_agent._load_analysis_prompt()
         
-        # Check for key elements that should be in the prompt
         required_elements = [
             "resolved_tickets",  # Should categorize resolved tickets
             "pending_tickets",   # Should categorize pending tickets  
@@ -236,13 +223,11 @@ class TestUIRegressionAgent(unittest.TestCase):
 
     def test_orchestrator_implements_jira_integration(self):
         """Test that OrchestratorAgent integrates with JIRA correctly (user implements the logic)"""
-        # Verify JIRA integration exists
         self.assertTrue(
             hasattr(self.orchestrator_agent, 'jira'),
             "OrchestratorAgent should have JIRA integration - user must implement this"
         )
         
-        # Verify it's the correct type
         from mcp_servers.jira import JIRAMCPServer
         self.assertIsInstance(
             self.orchestrator_agent.jira, JIRAMCPServer,
@@ -254,10 +239,8 @@ class TestUIRegressionAgent(unittest.TestCase):
     def test_image_diff_handles_similar_images_error(self, mock_complete_vision):
         """Test that ImageDiffAgent handles IMAGES_TOO_SIMILAR error correctly"""
         async def run_test():
-            # Mock LLM response for similar images
             mock_complete_vision.return_value = '{"error": "IMAGES_TOO_SIMILAR"}'
             
-            # Create dummy image files
             with open("temp_baseline.png", "wb") as f:
                 f.write(b"dummy_png_data")
             with open("temp_updated.png", "wb") as f:
@@ -290,12 +273,10 @@ class TestUIRegressionAgent(unittest.TestCase):
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"})
     @patch("src.image_diff_agent.complete_vision")
     def test_image_diff_handles_invalid_image_type_error(self, mock_complete_vision):
-        """Test that ImageDiffAgent handles INVALID_IMAGE_TYPE error correctly"""
+        """Test that ImageDiffAgent handles INVALID_IMAGE error correctly"""
         async def run_test():
-            # Mock LLM response for invalid image type
-            mock_complete_vision.return_value = '{"error": "INVALID_IMAGE_TYPE"}'
+            mock_complete_vision.return_value = '{"error": "INVALID_IMAGE"}'
             
-            # Create dummy image files
             with open("temp_baseline.png", "wb") as f:
                 f.write(b"dummy_png_data")
             with open("temp_updated.png", "wb") as f:
@@ -308,7 +289,7 @@ class TestUIRegressionAgent(unittest.TestCase):
                     )
                 
                 self.assertIn(
-                    "One or both images are not valid webpage screenshots",
+                    "Invalid or mismatched webpage screenshots",
                     str(context.exception),
                     "Should raise ValueError for invalid image types"
                 )
@@ -330,10 +311,8 @@ class TestUIRegressionAgent(unittest.TestCase):
     def test_image_diff_handles_unknown_error(self, mock_complete_vision):
         """Test that ImageDiffAgent handles unknown error codes correctly"""
         async def run_test():
-            # Mock LLM response with unknown error
             mock_complete_vision.return_value = '{"error": "UNKNOWN_ERROR_CODE"}'
             
-            # Create dummy image files
             with open("temp_baseline.png", "wb") as f:
                 f.write(b"dummy_png_data")
             with open("temp_updated.png", "wb") as f:
@@ -368,10 +347,8 @@ class TestUIRegressionAgent(unittest.TestCase):
     def test_image_diff_handles_errors_in_markdown_extraction(self, mock_complete_vision):
         """Test that ImageDiffAgent handles errors even in markdown JSON extraction"""
         async def run_test():
-            # Mock LLM response with error in markdown format
             mock_complete_vision.return_value = '```json\n{"error": "IMAGES_TOO_SIMILAR"}\n```'
             
-            # Create dummy image files
             with open("temp_baseline.png", "wb") as f:
                 f.write(b"dummy_png_data")
             with open("temp_updated.png", "wb") as f:

@@ -4,4 +4,8 @@ in the editor; however, it is possible from the terminal. You must not
 modify or delete these files because doing so results in a zero score.
 
 * src/__init__.py
-* src/test_agent.py
+* app.py
+* tests/*
+* prompts/image_diff_agent.txt
+* prompts/classification_agent.txt
+* prompts/orchestrator_agent.txt

@@ -4,7 +4,6 @@ from typing import Dict
 import json
 
 from llm import complete_vision
-from utils.logger import ui_logger
 
 
 class ImageDiffAgent:
@@ -13,7 +12,6 @@ class ImageDiffAgent:
 
     def __init__(self):
         """Initialize the UI regression agent"""
-        self.logger = ui_logger
         self.ui_regression_prompt = self._load_ui_regression_prompt()
 
     def _load_ui_regression_prompt(self) -> str:
@@ -26,48 +24,33 @@ class ImageDiffAgent:
                 return f.read().strip()
         except FileNotFoundError:
             return (
-                "Compare the baseline and updated screenshots for "
+                "Compare the production and preview screenshots for "
                 "UI differences."
             )
 
     async def compare_screenshots(
-        self, baseline_path: str, updated_path: str
+        self, production_path: str, preview_path: str
     ) -> Dict:
         """Compare two screenshots and identify differences using LLM"""
-        self.logger.logger.info(
-            "Comparing screenshots: %s vs %s", baseline_path, updated_path
-        )
-
-        self.logger.logger.info("Sending request to LLM for image comparison")
-
         try:
-            # Use centralized LLM client for vision completion
             response_text = await complete_vision(
-                self.ui_regression_prompt, [baseline_path, updated_path]
+                self.ui_regression_prompt, [production_path, preview_path]
             )
-
-            self.logger.logger.info("Received LLM response: %s", response_text)
 
             try:
                 differences_data = json.loads(response_text)
-                self.logger.logger.info(
-                    "Successfully parsed LLM response as JSON"
-                )
                 
-                # Check for error conditions
                 if "error" in differences_data:
                     error_code = differences_data["error"]
                     if error_code == "IMAGES_TOO_SIMILAR":
                         raise ValueError("Images are too similar to detect meaningful differences")
-                    elif error_code == "INVALID_IMAGE_TYPE":
-                        raise ValueError("One or both images are not valid webpage screenshots")
+                    elif error_code == "INVALID_IMAGE":
+                         raise ValueError("Invalid or mismatched webpage screenshots")
                     else:
                         raise ValueError(f"LLM returned error: {error_code}")
                 
                 return differences_data
             except json.JSONDecodeError as e:
-                self.logger.logger.warning("JSON decode error: %s", e)
-
                 markdown_json_match = re.search(
                     r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL
                 )
@@ -76,17 +59,13 @@ class ImageDiffAgent:
                         differences_data = json.loads(
                             markdown_json_match.group(1)
                         )
-                        self.logger.logger.info(
-                            "Successfully extracted JSON from markdown"
-                        )
                         
-                        # Check for error conditions
                         if "error" in differences_data:
                             error_code = differences_data["error"]
                             if error_code == "IMAGES_TOO_SIMILAR":
                                 raise ValueError("Images are too similar to detect meaningful differences")
-                            elif error_code == "INVALID_IMAGE_TYPE":
-                                raise ValueError("One or both images are not valid webpage screenshots")
+                            elif error_code == "INVALID_IMAGE":
+                                raise ValueError("Invalid or mismatched webpage screenshots")
                             else:
                                 raise ValueError(f"LLM returned error: {error_code}")
                         
@@ -98,17 +77,13 @@ class ImageDiffAgent:
                 if json_match:
                     try:
                         differences_data = json.loads(json_match.group())
-                        self.logger.logger.info(
-                            "Successfully extracted JSON using regex"
-                        )
                         
-                        # Check for error conditions
                         if "error" in differences_data:
                             error_code = differences_data["error"]
                             if error_code == "IMAGES_TOO_SIMILAR":
                                 raise ValueError("Images are too similar to detect meaningful differences")
-                            elif error_code == "INVALID_IMAGE_TYPE":
-                                raise ValueError("One or both images are not valid webpage screenshots")
+                            elif error_code == "INVALID_IMAGE":
+                                raise ValueError("Invalid or mismatched webpage screenshots")
                             else:
                                 raise ValueError(f"LLM returned error: {error_code}")
                         
@@ -116,11 +91,9 @@ class ImageDiffAgent:
                     except json.JSONDecodeError:
                         pass
 
-                self.logger.logger.error("No valid JSON found in LLM response")
                 raise ValueError(
                     "LLM response does not contain valid JSON"
                 ) from e
 
-        except Exception as e:
-            self.logger.logger.error("LLM analysis failed: %s", e)
+        except Exception:
             raise

@@ -16,13 +16,11 @@ def create_jira_database():
     """Create and populate JIRA database for UI regression testing"""
     db_path = "data/databases/jira.db"
 
-    # Create databases directory if it doesn't exist
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Create jira_tickets table
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS jira_tickets (
@@ -41,7 +39,6 @@ def create_jira_database():
     """
     )
 
-    # Load initial JIRA tickets from JSON
     json_file = os.path.join(os.path.dirname(__file__), "data.json")
     try:
         with open(json_file, "r", encoding="utf-8") as f:
@@ -52,10 +49,8 @@ def create_jira_database():
         print(f"Error loading JIRA data from {json_file}: {e}")
         return
 
-    # Clear existing data (for fresh seeding)
     cursor.execute("DELETE FROM jira_tickets")
 
-    # Insert initial JIRA tickets
     for ticket_id, ticket_data in jira_tickets.items():
         cursor.execute(
             """
@@ -82,13 +77,10 @@ def create_jira_database():
     conn.commit()
     conn.close()
 
-    print(f"✅ JIRA database seeded successfully at {db_path}")
-    print(f"   - {len(jira_tickets)} initial tickets loaded")
 
 
 def main():
     """Main function to seed JIRA database"""
-    print("🔄 Seeding JIRA database for UI regression testing...")
     create_jira_database()
 
 

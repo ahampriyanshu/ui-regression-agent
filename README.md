@@ -1,79 +1,76 @@
+# UI Regression Testing Agent
+
 ## Scenario
-You're a QA engineer and your team has deployed three UI updates to the login page. The product manager is asking about regression testing, but you're staring at folders full of before/after screenshots and a JIRA board with dozens of tickets.
 
-You need to check if the changes match planned features or if there are unexpected regressions. For each issue found, you'll need to decide whether to file a critical bug report, log a minor issue, or simply confirm an expected change.
-
-Your manager expects a comprehensive report by noon, but doing this manually means you'll miss other important testing work. You need an AI agent that can automate this entire UI regression workflow.
+You have joined a new team as a QA engineer and discovered several JIRA tickets in review status with corresponding changes deployed to the preview environment. Your approval is required before these changes can be deployed to production. You need an AI agent that can automate the entire UI regression workflow by comparing screenshots from different environments, analyzing changes against existing tickets, and making appropriate updates to JIRA tickets.
 
 ## Task
-Build a multi-modal AI agent that compares webpage screenshots and manages UI regression issues by:
 
-Comparing baseline and updated screenshots using LLM vision capabilities to detect UI differences.
+Build a multi-modal AI agent system that automates UI regression testing by implementing three specialized agents:
 
-Analyzing detected differences against existing JIRA tickets to classify changes as expected, minor issues, or critical regressions.
+- **ImageDiffAgent** - Uses LLM to compare webpage screenshots and detect UI differences.
 
-Taking automated actions like creating JIRA tickets for critical issues, updating ticket statuses, and logging minor issues.
+- **ClassificationAgent** - Analyzes UI differences against existing JIRA tickets to categorize the differences.
 
-Providing structured feedback on all UI changes and actions taken.
+- **OrchestratorAgent** - Executes JIRA workflow actions: updates resolved tickets, moves pending tickets to on_hold, creates new tickets.
 
-Returns detailed analysis results and JIRA ticket updates.
+## Implementation Requirements
 
-## Requirements
-Implement a three-agent system with specialized responsibilities:
+### What You'll Build
+Complete the missing components to create a working UI regression system:
 
-ImageDiffAgent
-Uses LLM vision to compare two webpage screenshots and identify differences.
+**Prompts** (LLM instructions)
+- `prompts/image_diff_agent.txt` - Screenshot comparison logic
+- `prompts/classification_agent.txt` - JIRA ticket analysis logic
 
-Detects changes in UI elements like buttons, text, layouts, colors, and positioning.
+**Python Code** (Core orchestration logic)
+- `src/orchestrator_agent.py` methods:
+  - `orchestrate_jira_workflow()` - Main workflow orchestrator
+  - `update_resolved_issues()` - Mark completed tickets as done
+  - `update_pending_issues()` - Move tickets to on_hold with comments  
+  - `create_new_issues()` - Create JIRA tickets for critical issues
 
-Returns structured list of differences with descriptions and severity levels.
+**New Ticket Requirements**
+- All newly created tickets must follow organizational standards:
+  - **Priority**: High (critical regressions require immediate attention)
+  - **Type**: Fix (addressing unplanned UI issues)
+  - **Assignee**: frontend.dev (UI issues routed to frontend team)
+  - **Reporter**: ui_regression.agent (automated system identification)
+  - **Status**: todo (ready for development team pickup)
 
-Must handle error cases like identical images or invalid image types.
+## Evaluation
 
-ClassificationAgent
-Analyzes UI differences against existing JIRA tickets to classify changes.
+Your implementation will be tested against a realistic scenario with multiple JIRA tickets and UI changes:
 
-Determines if changes match planned features or represent unexpected regressions.
+### Initial State
+- **7 total JIRA tickets** exist in the system (UI, Backend, DevOps, Data tickets)
+- **3 UI-specific tickets** are relevant for regression testing:
+  - UI-001: Add "Forgot Password?" link (with question mark)
+  - UI-002: Change password input type to password with eye icon
+  - UI-003: Change Login button color from blue to green
 
-Categorizes differences into resolved tickets, pending work, and new issues.
+### Expected Outcomes
+Your agent implementation should achieve these specific results:
+- **2 tickets resolved** (UI-002, UI-003) - changes match JIRA requirements perfectly
+- **1 ticket on hold** (UI-001) - implementation differs from specification (missing question mark)
+- **2 new tickets created** - for unexpected header navigation issue (About link removal) and for text change in signup button (Register -> Sign Up)
+- **4 other tickets untouched** - non-UI tickets remain unchanged
 
-Filters only UI-related tickets for analysis.
+This evaluation tests your ability to correctly classify UI changes, apply business logic for ticket status updates, and maintain data integrity across the JIRA system.
 
-OrchestratorAgent
-Executes actions based on classification results with JIRA integration.
+## Sample Cases
 
-Updates resolved tickets to "done" status for completed features.
+### Case 1: Normal UI Changes
+**Input**
+- **production.png**: Screenshot of the production environment
+- **preview.png**: Screenshot of the preview environment
 
-Moves pending tickets to "on_hold" with explanatory comments.
-
-Creates new JIRA tickets for critical regression issues.
-
-Tracks all actions taken and validates successful execution.
-
-Workflow must run in this order:
-ImageDiffAgent compares screenshots and identifies UI differences
-
-ClassificationAgent analyzes differences against JIRA tickets and categorizes changes
-
-OrchestratorAgent executes appropriate actions and updates JIRA tickets
-
-System returns summary of differences found and actions taken
-
-## Examples
-Input Screenshots
-Baseline: Login page with blue "Login" button and text input
-Updated: Login page with green "Login" button and password input with eye icon
-
-Expected JIRA Tickets:
-UI-001: Add "Forgot Password?" link (with question mark)
-UI-002: Change password input type from text to password  
-UI-003: Change Login button color from blue to green
-
-ImageDiffAgent Output
+**ImageDiffAgent Output**
+```json
 [
   {
     "description": "Forgot Password link added but without question mark",
-    "element_type": "link",
+    "element_type": "link", 
     "severity": "low"
   },
   {
@@ -82,140 +79,52 @@ ImageDiffAgent Output
     "severity": "low"
   },
   {
-    "description": "Login button color changed from blue to green",
-    "element_type": "button", 
-    "severity": "medium"
-  },
-  {
-    "description": "Register button text changed to Sign Up", 
-    "element_type": "button",
-    "severity": "high"
-  },
-  {
-    "description": "About link missing from navigation header",
+    "description": "About link missing from navigation header", 
     "element_type": "navigation",
     "severity": "high"
   }
 ]
+```
 
-ClassificationAgent Output
-{
-  "resolved_tickets": [
-    {
-      "ticket_id": "UI-002",
-      "reason": "Password input change matches ticket requirements exactly"
-    },
-    {
-      "ticket_id": "UI-003", 
-      "reason": "Login button color change implemented as specified"
-    }
-  ],
-  "pending_tickets": [
-    {
-      "ticket_id": "UI-001",
-      "reason": "Forgot Password link added but missing question mark as specified"
-    }
-  ],
-  "new_tickets": [
-    {
-      "title": "Unexpected button text change",
-      "description": "Register button text changed to Sign Up without authorization",
-      "severity": "critical",
-      "priority": "high",
-      "type": "fix",
-      "assignee": "frontend.dev",
-      "reporter": "ui_regression.agent",
-      "status": "todo"
-    },
-    {
-      "title": "Missing About link in header",
-      "description": "About navigation link missing from header - critical navigation issue",
-      "severity": "critical",
-      "priority": "high", 
-      "type": "fix",
-      "assignee": "frontend.dev",
-      "reporter": "ui_regression.agent",
-      "status": "todo"
-    }
-  ]
-}
+### Case 2: Similar Images
+**Input**
+- **Production**: Login page screenshot
+- **Preview**: Identical login page screenshot
 
-Final Output
-{
-  "status": "completed",
-  "differences_found": 5,
-  "jira_updates": 4,
-  "details": {
-    "resolved_tickets": ["UI-002", "UI-003"],
-    "pending_tickets": ["UI-001"],
-    "new_tickets": ["UI-004", "UI-005"]
-  }
-}
-
-Error Example
-Input Screenshots
-Two identical login page screenshots
-
-ImageDiffAgent Output
+**ImageDiffAgent Output**
+```json
 {
   "error": "IMAGES_TOO_SIMILAR"
 }
+```
 
-Final Output
+### Case 3: Invalid Image Type
+**Input**
+- **Production**: Login page screenshot
+- **Preview**: Random website (e-commerce/blog) screenshot
+
+**ImageDiffAgent Output**
+```json
 {
-  "status": "error",
-  "message": "Images are too similar to detect meaningful differences"
+  "error": "INVALID_IMAGE"
 }
+```
 
-Constraints
-The challenge focuses on implementing specific components while leveraging existing infrastructure:
+### Case 4: Blank/Invalid Screenshots
+**Input**
+- **Production**: Blank or corrupted image file
+- **Preview**: Valid login page screenshot
 
-Implement prompts for ImageDiffAgent and ClassificationAgent in text files.
-Implement Python logic for OrchestratorAgent methods and JIRA operations.
-Work with provided tools and infrastructure:
-llm.py for LLM calls and vision processing
-mcp_servers/jira.py for JIRA ticket operations  
-constants/ for ticket status, priority, and user definitions
-All agent scaffolding and workflow orchestration is provided.
+**ImageDiffAgent Output**
+```json
+{
+  "error": "INVALID_IMAGE"
+}
+```
 
-Error handling is mandatory:
-ImageDiffAgent must detect and report similar images or invalid image types
-ClassificationAgent must handle cases with no differences or no matching tickets
-OrchestratorAgent must validate successful JIRA operations and handle failures
+## Success Tips
 
-Output format requirements:
-ImageDiffAgent returns list of difference objects with description, element_type, severity
-ClassificationAgent returns three lists: resolved_tickets, pending_tickets, new_tickets  
-OrchestratorAgent returns summary with ticket counts and action details
-Error cases return status "error" with descriptive message
-
-Implementation Guide
-Build the working UI regression agent by completing these components:
-
-### Prompts
-prompts/image_diff_agent.txt - LLM prompt for screenshot comparison and difference detection
-prompts/classification_agent.txt - LLM prompt for analyzing differences against JIRA tickets
-
-### Python Code  
-src/orchestrator_agent.py methods:
-execute_actions() - Main orchestration method
-update_resolved_tickets() - Mark completed tickets as done
-update_pending_tickets() - Move tickets to on_hold with comments
-create_tickets_for_new_issues() - Create JIRA tickets for critical issues
-
-### Streamlit Web Interface
-The project includes a beautiful web interface built with Streamlit for interactive testing and visualization:
-
-Run and Test
-# Run the app
-bash setup/run.sh
-
-# Run test cases
-bash setup/test.sh
-
-## Tips for Success
-Focus on prompt writing - Clear, specific prompts lead to better LLM outputs
-Test incrementally - Run tests after implementing each method
-Use the provided examples - Study the test data to understand expected outputs
-Handle edge cases - Consider empty data, malformed inputs, and error scenarios
-Use the Streamlit app - Visualize your results and test interactively
+- **Prompt Engineering**: Write concise, deterministic prompts with examples
+- **Error Handling**: Handle edge cases like identical or invalid images
+- **Classification Rules**: Mark resolved only for perfect matches, pending for partial implementations, and raise new tickets for critical regressions
+- **Use the Streamlit app** - Visualize your results and test interactively

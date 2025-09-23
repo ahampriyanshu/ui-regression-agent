@@ -1,5 +1,5 @@
 """
-JIRA-related constants for UI Regression Testing
+Constants for UI Regression Testing
 
 Contains all valid values for JIRA ticket fields including status, type,
 priority, and user assignments.
@@ -10,7 +10,7 @@ from typing import List
 
 
 class TicketStatus(Enum):
-    """Valid ticket statuses"""
+    """Allowed JIRA ticket statuses"""
 
     TODO = "todo"
     IN_PROGRESS = "in_progress"
@@ -20,7 +20,7 @@ class TicketStatus(Enum):
 
 
 class TicketType(Enum):
-    """Valid ticket types"""
+    """Allowed JIRA ticket types"""
 
     FEATURE = "feature"
     FIX = "fix"
@@ -28,7 +28,7 @@ class TicketType(Enum):
 
 
 class TicketPriority(Enum):
-    """Valid ticket priorities"""
+    """Allowed JIRA ticket priorities"""
 
     LOW = "low"
     MEDIUM = "medium"
@@ -45,12 +45,10 @@ class Users(Enum):
     UI_REGRESSION_AGENT = "ui_regression.agent"
 
 
-# Convenience lists for validation
 VALID_STATUSES: List[str] = [status.value for status in TicketStatus]
 VALID_TYPES: List[str] = [ticket_type.value for ticket_type in TicketType]
 VALID_PRIORITIES: List[str] = [priority.value for priority in TicketPriority]
 
-# User lists for different roles
 VALID_ASSIGNEES: List[str] = [
     Users.FRONTEND_DEV.value,
     Users.BACKEND_DEV.value,

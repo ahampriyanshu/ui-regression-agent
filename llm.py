@@ -90,14 +90,12 @@ class LLMClient:
             Exception: If LLM call fails
         """
         try:
-            # Create image documents
             image_documents = []
             for image_path in image_paths:
                 if not os.path.exists(image_path):
                     raise ValueError(f"Image file not found: {image_path}")
                 image_documents.append(ImageDocument(image_path=image_path))
 
-            # Make vision LLM call
             response = await self.vision_llm.acomplete(
                 prompt=prompt, image_documents=image_documents
             )
@@ -106,7 +104,6 @@ class LLMClient:
             raise Exception(f"Vision LLM completion failed: {e}") from e
 
 
-# Global LLM client instance
 _llm_client: Optional[LLMClient] = None
 
 
