@@ -1,12 +1,13 @@
-import base64
 import os
 import re
 from typing import Dict
 import json
+
+from llm import complete_vision
 from utils.logger import ui_logger
 
 
-class UIRegressionAgent:
+class ImageDiffAgent:
     """Agent responsible for comparing screenshots and detecting UI differences
     using LLM"""
 
@@ -29,17 +30,6 @@ class UIRegressionAgent:
                 "UI differences."
             )
 
-    def encode_image_to_base64(self, image_path: str) -> str:
-        """Encode image to base64 for LLM processing"""
-        try:
-            with open(image_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode("utf-8")
-        except (IOError, OSError) as e:
-            self.logger.logger.error(
-                "Error encoding image %s: %s", image_path, e
-            )
-            return ""
-
     async def compare_screenshots(
         self, baseline_path: str, updated_path: str
     ) -> Dict:
@@ -48,49 +38,18 @@ class UIRegressionAgent:
             "Comparing screenshots: %s vs %s", baseline_path, updated_path
         )
 
-        baseline_b64 = self.encode_image_to_base64(baseline_path)
-        updated_b64 = self.encode_image_to_base64(updated_path)
-
-        if not baseline_b64 or not updated_b64:
-            self.logger.logger.error("Failed to encode one or both images")
-            raise ValueError("Failed to encode images for comparison")
-
-        if not os.getenv("OPENAI_API_KEY"):
-            raise ValueError(
-                "OpenAI API key is required for UI comparison. "
-                "Please set environment variables:\n"
-                "OPENAI_API_KEY=your_api_key\n"
-                "OPENAI_API_BASE=https://api.openai.com/v1 (optional)\n"
-                "Example: OPENAI_API_KEY=sk-your-key python app.py "
-                "baseline.png updated.png"
-            )
-
-        # Create vision-enabled prompt with images
-        from llama_index.core.schema import ImageDocument
-
-        baseline_doc = ImageDocument(image_path=baseline_path)
-        updated_doc = ImageDocument(image_path=updated_path)
-
-        prompt = self.ui_regression_prompt
-
         self.logger.logger.info("Sending request to LLM for image comparison")
 
         try:
-            # Use the vision capabilities by including image documents
-            from llama_index.multi_modal_llms.openai import OpenAIMultiModal
-
-            multimodal_llm = OpenAIMultiModal(
-                model="gpt-4o", max_new_tokens=4096
+            # Use centralized LLM client for vision completion
+            response_text = await complete_vision(
+                self.ui_regression_prompt, [baseline_path, updated_path]
             )
 
-            response = await multimodal_llm.acomplete(
-                prompt=prompt, image_documents=[baseline_doc, updated_doc]
-            )
-
-            self.logger.logger.info("Received LLM response: %s", response.text)
+            self.logger.logger.info("Received LLM response: %s", response_text)
 
             try:
-                differences_data = json.loads(response.text)
+                differences_data = json.loads(response_text)
                 self.logger.logger.info(
                     "Successfully parsed LLM response as JSON"
                 )
@@ -99,7 +58,7 @@ class UIRegressionAgent:
                 self.logger.logger.warning("JSON decode error: %s", e)
 
                 markdown_json_match = re.search(
-                    r"```json\s*(\{.*?\})\s*```", response.text, re.DOTALL
+                    r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL
                 )
                 if markdown_json_match:
                     try:
@@ -113,7 +72,7 @@ class UIRegressionAgent:
                     except json.JSONDecodeError:
                         pass
 
-                json_match = re.search(r"\{.*\}", response.text, re.DOTALL)
+                json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
                 if json_match:
                     try:
                         differences_data = json.loads(json_match.group())

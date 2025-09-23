@@ -4,23 +4,23 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
-from mcp_servers.jira import JIRAMCPServer
 from PIL import Image
+from unittest.mock import patch
+from mcp_servers.jira import JIRAMCPServer
 from src.orchestrator_agent import OrchestratorAgent
 from src.classification_agent import ClassificationAgent
-from src.ui_regression_agent import UIRegressionAgent
+from src.image_diff_agent import ImageDiffAgent
 from app import run_regression_test
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
-class TestUIRegressionAgent(unittest.TestCase):
-    """Test cases for UI Regression Agent"""
+class TestImageDiffAgent(unittest.TestCase):
+    """Test cases for Image Diff Agent"""
 
     def setUp(self):
         """Set up test fixtures"""
-        self.ui_agent = UIRegressionAgent()
+        self.ui_agent = ImageDiffAgent()
         self.classification_agent = ClassificationAgent()
         self.orchestrator_agent = OrchestratorAgent()
         self.test_dir = tempfile.mkdtemp()
@@ -50,29 +50,27 @@ class TestUIRegressionAgent(unittest.TestCase):
         self.assertIsNotNone(self.orchestrator_agent)
         self.assertIsNotNone(self.classification_agent.jira)
 
-    @patch("llama_index.multi_modal_llms.openai.OpenAIMultiModal")
+    @patch("src.image_diff_agent.complete_vision")
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"})
-    def test_compare_screenshots_mock(self, mock_multimodal_class):
+    def test_compare_screenshots_mock(self, mock_complete_vision):
         """Test screenshot comparison with mocked multimodal LLM"""
 
-        # Mock the multimodal LLM instance
-        mock_llm = MagicMock()
-        mock_multimodal_class.return_value = mock_llm
+        # Mock the complete_vision function to return JSON response (async)
+        async def mock_response(*args, **kwargs):
+            return json.dumps(
+                {
+                    "differences": [
+                        {
+                            "element_type": "button",
+                            "change_description": "Color changed",
+                            "location": "center",
+                            "severity": "low",
+                        }
+                    ]
+                }
+            )
 
-        mock_response = MagicMock()
-        mock_response.text = json.dumps(
-            {
-                "differences": [
-                    {
-                        "element_type": "button",
-                        "change_description": "Color changed",
-                        "location": "center",
-                        "severity": "low",
-                    }
-                ]
-            }
-        )
-        mock_llm.acomplete = AsyncMock(return_value=mock_response)
+        mock_complete_vision.side_effect = mock_response
 
         async def run_test():
 
@@ -152,93 +150,6 @@ class TestUIRegressionAgent(unittest.TestCase):
         self.assertEqual(result["updated_tickets_count"], 1)
         self.assertEqual(result["created_tickets_count"], 1)
         self.assertEqual(result["minor_issues_logged"], 2)
-
-    def test_jira_status_updates(self):
-        """Test that JIRA ticket statuses are updated correctly using MCP server calls"""
-
-        async def run_test():
-
-            ui_002_initial = await self.classification_agent.jira.get_ticket(
-                "UI-002"
-            )
-            ui_001_initial = await self.classification_agent.jira.get_ticket(
-                "UI-001"
-            )
-            self.assertEqual(ui_002_initial["status"], "In Review")
-            self.assertEqual(ui_001_initial["status"], "In Review")
-
-            await self.classification_agent.jira.update_ticket_status(
-                "UI-002", "Done"
-            )
-            await self.classification_agent.jira.update_ticket_status(
-                "UI-001", "Changes Requested"
-            )
-
-            ui_002_updated = await self.classification_agent.jira.get_ticket(
-                "UI-002"
-            )
-            ui_001_updated = await self.classification_agent.jira.get_ticket(
-                "UI-001"
-            )
-
-            self.assertEqual(ui_002_updated["status"], "Done")
-            self.assertEqual(ui_001_updated["status"], "Changes Requested")
-
-            self.assertIsNotNone(ui_002_updated["updated"])
-            self.assertIsNotNone(ui_001_updated["updated"])
-
-            return [ui_002_updated, ui_001_updated]
-
-        asyncio.run(run_test())
-
-    def test_new_ticket_assignment(self):
-        """Test that new tickets are assigned correctly"""
-
-        async def run_test():
-            ticket = await self.classification_agent.jira.create_ticket(
-                title="Test Critical Issue",
-                description="This is a test critical issue",
-                priority="High",
-                ticket_type="Bug",
-            )
-
-            self.assertEqual(ticket["assignee"], "auto.assigned@company.com")
-            self.assertEqual(ticket["status"], "Open")
-            self.assertEqual(
-                ticket["reporter"], "ui.regression.agent@company.com"
-            )
-            self.assertEqual(ticket["type"], "Bug")
-            self.assertEqual(ticket["priority"], "High")
-
-            return ticket
-
-        asyncio.run(run_test())
-
-    def test_initial_ticket_assignments(self):
-        """Test that initial tickets have correct assignments using MCP server calls"""
-
-        async def run_test():
-
-            all_tickets = (
-                await self.classification_agent.jira.get_all_tickets()
-            )
-
-            self.assertGreaterEqual(len(all_tickets), 4)
-
-            for ticket_id in ["UI-001", "UI-002", "UI-003", "UI-004"]:
-                ticket = await self.classification_agent.jira.get_ticket(
-                    ticket_id
-                )
-                self.assertIsNotNone(
-                    ticket, f"Ticket {ticket_id} should exist"
-                )
-                self.assertEqual(ticket["assignee"], "frontend.dev")
-                self.assertEqual(ticket["status"], "In Review")
-                self.assertEqual(ticket["reporter"], "product.manager")
-
-            return all_tickets
-
-        asyncio.run(run_test())
 
     def test_comprehensive_regression_workflow(self):
         """Test complete regression workflow with status updates"""

@@ -11,7 +11,7 @@ from typing import Dict
 import streamlit as st
 from PIL import Image
 
-from src.ui_regression_agent import UIRegressionAgent
+from src.image_diff_agent import ImageDiffAgent
 from src.classification_agent import ClassificationAgent
 from src.orchestrator_agent import OrchestratorAgent
 from utils.logger import ui_logger
@@ -19,7 +19,7 @@ from utils.logger import ui_logger
 
 async def run_regression_test(baseline_path: str, updated_path: str) -> Dict:
     """Run the complete UI regression test workflow using all three agents"""
-    ui_agent = UIRegressionAgent()
+    ui_agent = ImageDiffAgent()
     classification_agent = ClassificationAgent()
     orchestrator_agent = OrchestratorAgent()
     logger = ui_logger

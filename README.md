@@ -106,7 +106,7 @@ ui-regress/
 The main agent that orchestrates the entire workflow:
 
 ```python
-class UIRegressionAgent:
+class ImageDiffAgent:
     async def run_regression_test(self, baseline_path, updated_path):
         # 1. Compare screenshots using LLM vision
         differences = await self.compare_screenshots(baseline_path, updated_path)
@@ -154,7 +154,7 @@ Run the test suite to validate your implementation:
 python -m pytest
 
 # Run specific test categories
-python -m pytest src/test_agent.py::TestUIRegressionAgent
+python -m pytest tests/test_ui_regression_agent.py::TestImageDiffAgent
 ```
 
 ### Test Scenarios

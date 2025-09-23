@@ -3,7 +3,7 @@ import os
 import re
 from typing import Dict, List
 
-from llama_index.llms.openai import OpenAI
+from llm import complete_text
 from mcp_servers.jira import JIRAMCPServer
 from utils.logger import ui_logger
 
@@ -48,12 +48,6 @@ class ClassificationAgent:
 
         jira_tickets = await self.jira.get_all_tickets()
 
-        if not os.getenv("OPENAI_API_KEY"):
-            raise ValueError(
-                "OpenAI API key is required for difference analysis. "
-                "Please set OPENAI_API_KEY environment variable."
-            )
-
         prompt = f"""
         {self.analysis_prompt}
 
@@ -65,14 +59,13 @@ class ClassificationAgent:
         """
 
         try:
-            llm = OpenAI(model="gpt-4o", max_tokens=4096)
-            response = await llm.acomplete(prompt)
+            response_text = await complete_text(prompt)
             self.logger.logger.info(
-                "Received analysis response: %s", response.text
+                "Received analysis response: %s", response_text
             )
 
             try:
-                analysis_data = json.loads(response.text)
+                analysis_data = json.loads(response_text)
                 self.logger.logger.info(
                     "Successfully parsed analysis response as JSON"
                 )
@@ -83,7 +76,7 @@ class ClassificationAgent:
                 )
 
                 markdown_json_match = re.search(
-                    r"```json\s*(\{.*?\})\s*```", response.text, re.DOTALL
+                    r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL
                 )
                 if markdown_json_match:
                     try:
@@ -97,7 +90,7 @@ class ClassificationAgent:
                     except json.JSONDecodeError:
                         pass
 
-                json_match = re.search(r"\{.*\}", response.text, re.DOTALL)
+                json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
                 if json_match:
                     try:
                         analysis_data = json.loads(json_match.group())

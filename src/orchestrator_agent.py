@@ -87,9 +87,9 @@ class OrchestratorAgent:
                     description=description,
                     priority="High",
                     ticket_type="Bug",
-                    status="Open",
-                    assignee="auto.assigned@company.com",
-                    reporter="ui.regression.agent@company.com",
+                    assignee="frontend.dev",
+                    reporter="ui_regression.agent",
+                    status="Todo",
                 )
 
                 if new_ticket:
