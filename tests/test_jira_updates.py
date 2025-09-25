@@ -1,247 +1,180 @@
 #!/usr/bin/env python3
-"""
-Test suites for JIRA updates functionality in UI regression testing
-
-These tests focus on the final state of JIRA tickets after the UI regression
-analysis and ensure proper ticket updates and management.
-"""
+"""Integration tests validating final JIRA ticket states."""
 
 import asyncio
 import unittest
-from unittest.mock import patch
 
-from src.image_diff_agent import ImageDiffAgent
-from src.classification_agent import ClassificationAgent
-from src.orchestrator_agent import OrchestratorAgent
 from mcp_servers.jira import JIRAMCPServer
-from llm import complete_text
+from tests.constants import NON_UI_EXPECTATIONS
+from tests.utils import verify_textual_match
 
 
 class TestJIRAUpdates(unittest.TestCase):
+    """Validate that the JIRA data reflects the expected regression workflow."""
 
     def setUp(self):
-        """Set up test fixtures"""
-        self.image_diff_agent = ImageDiffAgent()
-        self.classification_agent = ClassificationAgent()
-        self.orchestrator_agent = OrchestratorAgent()
         self.jira = JIRAMCPServer()
 
-    @patch("tests.test_jira_updates.complete_text")
-    def test_ui_002_and_ui_003_resolved(self, mock_complete_text):
-        """Test that UI-002 and UI-003 are resolved without changing other details"""
-
+    def test_ui_002_and_ui_003_resolved(self):
         async def run_test():
-            async def semantic_similarity(a: str, b: str) -> float:
-                prompt = (
-                    "Return ONLY a float in [0,1] for semantic similarity between two texts.\n"
-                    f'Text A: "{a}"\n'
-                    f'Text B: "{b}"\n'
-                    "Score:"
-                )
-                response = await complete_text(prompt)
-                try:
-                    return float(str(response).strip())
-                except Exception:
-                    return 0.0
+            ui_002 = await self.jira.get_ticket("UI-002")
+            ui_003 = await self.jira.get_ticket("UI-003")
 
-            mock_analysis = {
-                "resolved_tickets": [
-                    {
-                        "ticket_id": "UI-002",
-                        "reason": "Password field correctly implemented with eye icon",
-                    },
-                    {
-                        "ticket_id": "UI-003",
-                        "reason": "Login button color changed from blue to green as specified",
-                    },
-                ],
-                "pending_tickets": [],
-                "new_tickets": [],
-            }
+            self.assertIsNotNone(ui_002)
+            self.assertIsNotNone(ui_003)
 
-            ui_002_before = await self.jira.get_ticket("UI-002")
-            ui_003_before = await self.jira.get_ticket("UI-003")
+            self.assertEqual(ui_002["status"], "done")
+            self.assertEqual(ui_002["priority"], "high")
+            self.assertEqual(ui_002["type"], "fix")
+            self.assertEqual(ui_002["assignee"], "frontend.dev")
+            self.assertEqual(ui_002["reporter"], "product.manager")
+            self.assertEqual(
+                ui_002["title"],
+                "Change the input field for password from type text to password",
+            )
+            self.assertIn("type='password'", ui_002["description"])
 
-            await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
-
-            ui_002_after = await self.jira.get_ticket("UI-002")
-            ui_003_after = await self.jira.get_ticket("UI-003")
-
-            self.assertEqual(ui_002_after["status"], "done")
-            self.assertEqual(ui_002_after["id"], ui_002_before["id"])
-            self.assertEqual(ui_002_after["title"], ui_002_before["title"])
-            self.assertEqual(ui_002_after["description"], ui_002_before["description"])
-            self.assertEqual(ui_002_after["assignee"], ui_002_before["assignee"])
-            self.assertEqual(ui_002_after["priority"], ui_002_before["priority"])
-
-            self.assertEqual(ui_003_after["status"], "done")
-            self.assertEqual(ui_003_after["id"], ui_003_before["id"])
-            self.assertEqual(ui_003_after["title"], ui_003_before["title"])
-            self.assertEqual(ui_003_after["description"], ui_003_before["description"])
-            self.assertEqual(ui_003_after["assignee"], ui_003_before["assignee"])
-            self.assertEqual(ui_003_after["priority"], ui_003_before["priority"])
+            self.assertEqual(ui_003["status"], "done")
+            self.assertEqual(ui_003["priority"], "low")
+            self.assertEqual(ui_003["type"], "fix")
+            self.assertEqual(ui_003["assignee"], "frontend.dev")
+            self.assertEqual(ui_003["reporter"], "product.manager")
+            self.assertEqual(
+                ui_003["title"],
+                "The 'Login' button would change from blue to green",
+            )
+            self.assertIn("green background", ui_003["description"])
 
         asyncio.run(run_test())
 
-    @patch("tests.test_jira_updates.complete_text")
-    def test_ui_001_moved_to_on_hold_with_comment(self, mock_complete_text):
-        """Test that UI-001 was moved to on_hold with comment message"""
-
+    def test_ui_001_moved_to_on_hold_with_comment(self):
         async def run_test():
+            ui_001 = await self.jira.get_ticket("UI-001")
 
-            async def semantic_similarity(a: str, b: str) -> float:
-                prompt = (
-                    "Return ONLY a float in [0,1] for semantic similarity between two texts.\n"
-                    f'Text A: "{a}"\n'
-                    f'Text B: "{b}"\n'
-                    "Score:"
-                )
-                response = await complete_text(prompt)
-                try:
-                    return float(str(response).strip())
-                except Exception:
-                    return 0.0
-
-            mock_analysis = {
-                "resolved_tickets": [],
-                "pending_tickets": [
-                    {
-                        "ticket_id": "UI-001",
-                        "reason": "Forgot Password link added but missing question mark",
-                    }
-                ],
-                "new_tickets": [],
-            }
-
-            ui_001_before = await self.jira.get_ticket("UI-001")
-
-            await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
-
-            ui_001_after = await self.jira.get_ticket("UI-001")
-
-            self.assertEqual(ui_001_after["status"], "on_hold")
-            self.assertEqual(ui_001_after["id"], ui_001_before["id"])
-            self.assertEqual(ui_001_after["title"], ui_001_before["title"])
-            self.assertEqual(ui_001_after["description"], ui_001_before["description"])
-            self.assertEqual(ui_001_after["assignee"], ui_001_before["assignee"])
-            self.assertEqual(ui_001_after["priority"], ui_001_before["priority"])
-
-            self.assertIsNotNone(ui_001_after.get("comment"))
-            similarity = await semantic_similarity(
-                "Forgot Password link added but missing question mark",
-                ui_001_after["comment"],
+            self.assertIsNotNone(ui_001)
+            self.assertEqual(ui_001["status"], "on_hold")
+            self.assertEqual(ui_001["priority"], "medium")
+            self.assertEqual(ui_001["assignee"], "frontend.dev")
+            self.assertEqual(ui_001["reporter"], "product.manager")
+            self.assertEqual(
+                ui_001["title"], "Add new href 'Forgot Password?'"
             )
-            self.assertGreaterEqual(similarity, 0.7)
+            self.assertIsNotNone(ui_001.get("comment"))
+
+            expected_reason = {
+                "reason": "Forgot Password link added but missing question mark",
+            }
+            actual_reason = {"comment": ui_001["comment"]}
+
+            self.assertTrue(
+                await verify_textual_match(expected_reason, actual_reason),
+                "UI-001 comment should explain the missing question mark",
+            )
 
         asyncio.run(run_test())
 
     def test_new_ui_ticket_raised_for_header_issue(self):
-        """Test that a new UI ticket was raised for the header issue"""
-
         async def run_test():
-            initial_tickets = await self.jira.get_all_tickets()
-            initial_count = len(initial_tickets)
+            candidates = []
+            for ticket_id in ("UI-004", "UI-005"):
+                ticket = await self.jira.get_ticket(ticket_id)
+                if ticket:
+                    candidates.append(ticket)
 
-            mock_analysis = {
-                "resolved_tickets": [],
-                "pending_tickets": [],
-                "new_tickets": [
-                    {
-                        "title": "Missing About link in header",
-                        "description": "About link is missing from the navigation header",
-                        "severity": "critical",
-                        "priority": "high",
-                        "type": "fix",
-                        "assignee": "frontend.dev",
-                        "reporter": "ui_regression.agent",
-                        "status": "todo",
-                    }
-                ],
+            self.assertTrue(
+                candidates,
+                "Expected UI regression tickets to exist for header/register issues",
+            )
+
+            header_ticket = next(
+                (
+                    ticket
+                    for ticket in candidates
+                    if "about" in f"{ticket['title']} {ticket['description']}".lower()
+                ),
+                None,
+            )
+
+            self.assertIsNotNone(header_ticket, "Header regression ticket should exist")
+            self.assertEqual(header_ticket["status"], "todo")
+            self.assertEqual(header_ticket["priority"], "high")
+            self.assertEqual(header_ticket["type"], "fix")
+            self.assertEqual(header_ticket["assignee"], "frontend.dev")
+            self.assertEqual(header_ticket["reporter"], "ui_regression.agent")
+
+            expected = {
+                "title": "Missing About link in header",
+                "description": "About link is missing from the navigation header",
             }
+            subject = {
+                "title": header_ticket["title"],
+                "description": header_ticket["description"],
+            }
+            self.assertTrue(
+                await verify_textual_match(expected, subject),
+                "Header navigation regression ticket should match expected description",
+            )
 
-            await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
+        asyncio.run(run_test())
 
-            final_tickets = await self.jira.get_all_tickets()
-            final_count = len(final_tickets)
+    def test_new_ui_ticket_raised_for_register_text_change(self):
+        async def run_test():
+            candidates = []
+            for ticket_id in ("UI-004", "UI-005"):
+                ticket = await self.jira.get_ticket(ticket_id)
+                if ticket:
+                    candidates.append(ticket)
 
-            self.assertEqual(final_count, initial_count + 1)
+            self.assertTrue(
+                candidates,
+                "Expected UI regression tickets to exist for header/register issues",
+            )
 
-            new_tickets = await self.jira.get_all_tickets()
-            new_ticket_ids = [
-                t["id"]
-                for t in new_tickets
-                if t["id"] not in [t["id"] for t in initial_tickets]
-            ]
-            self.assertEqual(len(new_ticket_ids), 1)
+            register_ticket = next(
+                (
+                    ticket
+                    for ticket in candidates
+                    if "register" in f"{ticket['title']} {ticket['description']}".lower()
+                ),
+                None,
+            )
+
+            self.assertIsNotNone(
+                register_ticket, "Register text change ticket should exist"
+            )
+            self.assertEqual(register_ticket["status"], "todo")
+            self.assertEqual(register_ticket["priority"], "low")
+            self.assertEqual(register_ticket["type"], "fix")
+            self.assertEqual(register_ticket["assignee"], "frontend.dev")
+            self.assertEqual(register_ticket["reporter"], "ui_regression.agent")
+
+            expected = {
+                "title": "Signup button text changed to Sign Up",
+                "description": "Register button now reads Sign Up",
+            }
+            subject = {
+                "title": register_ticket["title"],
+                "description": register_ticket["description"],
+            }
+            self.assertTrue(
+                await verify_textual_match(expected, subject),
+                "Register text change ticket should match expected description",
+            )
 
         asyncio.run(run_test())
 
     def test_other_tickets_left_untouched(self):
-        """Test that all other tickets (BE, DOPS, DATA) were left untouched after the update"""
-
         async def run_test():
-            initial_tickets = await self.jira.get_all_tickets()
-            non_ui_tickets_before = {
-                ticket["id"]: ticket
-                for ticket in initial_tickets
-                if not ticket["id"].startswith("UI-")
-            }
+            for ticket_id, expected in NON_UI_EXPECTATIONS.items():
+                ticket = await self.jira.get_ticket(ticket_id)
+                self.assertIsNotNone(ticket, f"Ticket {ticket_id} should exist")
 
-            mock_analysis = {
-                "resolved_tickets": [
-                    {"ticket_id": "UI-002", "reason": "Correctly implemented"}
-                ],
-                "pending_tickets": [
-                    {"ticket_id": "UI-001", "reason": "Needs minor adjustment"}
-                ],
-                "new_tickets": [
-                    {
-                        "title": "New UI regression issue",
-                        "description": "Critical UI problem detected",
-                        "severity": "critical",
-                        "priority": "high",
-                        "type": "fix",
-                        "assignee": "frontend.dev",
-                        "reporter": "ui_regression.agent",
-                        "status": "todo",
-                    }
-                ],
-            }
-
-            await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
-
-            final_tickets = await self.jira.get_all_tickets()
-            non_ui_tickets_after = {
-                ticket["id"]: ticket
-                for ticket in final_tickets
-                if not ticket["id"].startswith("UI-")
-            }
-
-            self.assertEqual(len(non_ui_tickets_before), len(non_ui_tickets_after))
-
-            for ticket_id, before_ticket in non_ui_tickets_before.items():
-                after_ticket = non_ui_tickets_after.get(ticket_id)
-                self.assertIsNotNone(
-                    after_ticket, f"Ticket {ticket_id} should still exist"
-                )
-
-                self.assertEqual(before_ticket["status"], after_ticket["status"])
-                self.assertEqual(before_ticket["title"], after_ticket["title"])
-                self.assertEqual(
-                    before_ticket["description"], after_ticket["description"]
-                )
-                self.assertEqual(before_ticket["assignee"], after_ticket["assignee"])
-                self.assertEqual(before_ticket["priority"], after_ticket["priority"])
-                self.assertEqual(before_ticket["type"], after_ticket["type"])
-                self.assertEqual(before_ticket["reporter"], after_ticket["reporter"])
-
-            expected_non_ui_ids = ["BE-001", "BE-002", "DOPS-001", "DATA-001"]
-            for expected_id in expected_non_ui_ids:
-                self.assertIn(
-                    expected_id,
-                    non_ui_tickets_after,
-                    f"Expected non-UI ticket {expected_id} should be present and untouched",
-                )
+                self.assertEqual(ticket["status"], expected["status"])
+                self.assertEqual(ticket["priority"], expected["priority"])
+                self.assertEqual(ticket["type"], expected["type"])
+                self.assertEqual(ticket["assignee"], expected["assignee"])
+                self.assertEqual(ticket["reporter"], expected["reporter"])
+                self.assertIn(expected["title"], ticket["title"])
 
         asyncio.run(run_test())
 
