@@ -32,6 +32,9 @@ class ClassificationAgent:
                 "classify them."
             )
 
+    def _load_analysis_prompt(self) -> str:
+        return self._load_classification_prompt()
+
     async def analyze_differences(self, differences: List[Dict]) -> Dict:
         """Analyze UI differences against JIRA tickets and classify them"""
         if not differences:

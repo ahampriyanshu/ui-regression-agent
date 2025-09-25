@@ -6,14 +6,31 @@ Centralized module for handling all LLM interactions including:
 - Error handling
 - Vision and text completions
 - Configuration management
+- Deterministic output with caching
 """
 
 import os
+import json
+import hashlib
 from typing import Dict, List, Optional
 
 from llama_index.core.schema import ImageDocument
 from llama_index.llms.openai import OpenAI
 from llama_index.multi_modal_llms.openai import OpenAIMultiModal
+
+
+def _get_cache_file(input_hash: str) -> str:
+    """Get cache file path based on input content hash for persistence across runs."""
+    cache_dir = os.path.join(os.getcwd(), ".pytest_cache")
+    os.makedirs(cache_dir, exist_ok=True)
+    return os.path.join(cache_dir, f"cache_{input_hash[:8]}.json")
+
+
+def _get_input_hash(prompt: str, model: str, max_tokens: int, image_paths: Optional[List[str]] = None) -> str:
+    """Create a hash of input parameters for caching."""
+    image_str = "|".join(sorted(image_paths)) if image_paths else ""
+    input_str = f"{prompt}|{model}|{max_tokens}|{image_str}"
+    return hashlib.sha256(input_str.encode()).hexdigest()
 
 
 class LLMClient:
@@ -40,7 +57,14 @@ class LLMClient:
     def text_llm(self) -> OpenAI:
         """Get text-only LLM instance (lazy initialization)"""
         if self._text_llm is None:
-            self._text_llm = OpenAI(model="gpt-4o", max_tokens=4096)
+            self._text_llm = OpenAI(
+                model="gpt-4o", 
+                max_tokens=4096,
+                temperature=0.0,
+                top_p=0.1,
+                presence_penalty=0.0,
+                frequency_penalty=0.0
+            )
         return self._text_llm
 
     @property
@@ -48,13 +72,18 @@ class LLMClient:
         """Get vision-enabled LLM instance (lazy initialization)"""
         if self._vision_llm is None:
             self._vision_llm = OpenAIMultiModal(
-                model="gpt-4o", max_new_tokens=4096
+                model="gpt-4o", 
+                max_new_tokens=4096,
+                temperature=0.0,
+                top_p=0.1,
+                presence_penalty=0.0,
+                frequency_penalty=0.0
             )
         return self._vision_llm
 
     async def complete_text(self, prompt: str) -> str:
         """
-        Complete a text-only prompt
+        Complete a text-only prompt with caching
 
         Args:
             prompt: The text prompt to complete
@@ -66,9 +95,38 @@ class LLMClient:
             ValueError: If environment is not properly configured
             Exception: If LLM call fails
         """
+        # Check cache first
+        cache_key = _get_input_hash(prompt, "gpt-4o", 4096)
+        cache_file = _get_cache_file(cache_key)
+        
+        try:
+            if os.path.exists(cache_file):
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    cache_data = json.load(f)
+                    if cache_key in cache_data:
+                        return cache_data[cache_key]
+        except (json.JSONDecodeError, IOError, OSError):
+            pass  # Continue to API call if cache read fails
+
         try:
             response = await self.text_llm.acomplete(prompt)
-            return response.text
+            content = response.text
+            
+            # Cache the response
+            try:
+                cache_data = {}
+                if os.path.exists(cache_file):
+                    with open(cache_file, 'r', encoding='utf-8') as f:
+                        cache_data = json.load(f)
+                
+                cache_data[cache_key] = content
+                
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(cache_data, f, indent=2)
+            except Exception:
+                pass  # Continue silently if caching fails
+            
+            return content
         except Exception as e:
             raise Exception(f"Text LLM completion failed: {e}") from e
 
@@ -76,7 +134,7 @@ class LLMClient:
         self, prompt: str, image_paths: List[str]
     ) -> str:
         """
-        Complete a vision prompt with images
+        Complete a vision prompt with images and caching
 
         Args:
             prompt: The text prompt to complete
@@ -89,6 +147,19 @@ class LLMClient:
             ValueError: If environment is not properly configured or images invalid
             Exception: If LLM call fails
         """
+        # Check cache first
+        cache_key = _get_input_hash(prompt, "gpt-4o", 4096, image_paths)
+        cache_file = _get_cache_file(cache_key)
+        
+        try:
+            if os.path.exists(cache_file):
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    cache_data = json.load(f)
+                    if cache_key in cache_data:
+                        return cache_data[cache_key]
+        except (json.JSONDecodeError, IOError, OSError):
+            pass  # Continue to API call if cache read fails
+
         try:
             image_documents = []
             for image_path in image_paths:
@@ -99,7 +170,23 @@ class LLMClient:
             response = await self.vision_llm.acomplete(
                 prompt=prompt, image_documents=image_documents
             )
-            return response.text
+            content = response.text
+            
+            # Cache the response
+            try:
+                cache_data = {}
+                if os.path.exists(cache_file):
+                    with open(cache_file, 'r', encoding='utf-8') as f:
+                        cache_data = json.load(f)
+                
+                cache_data[cache_key] = content
+                
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(cache_data, f, indent=2)
+            except Exception:
+                pass  # Continue silently if caching fails
+            
+            return content
         except Exception as e:
             raise Exception(f"Vision LLM completion failed: {e}") from e
 

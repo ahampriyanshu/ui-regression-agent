@@ -46,18 +46,15 @@ class OrchestratorAgent:
                 "description",
                 "UI issue detected during regression testing",
             )
-            severity = ticket_data.get("severity", "minor")
-            
-            if severity == "critical":
-                await self.jira.create_ticket(
-                    title=title,
-                    description=description,
-                    priority=ticket_data.get("priority", TicketPriority.HIGH.value),
-                    ticket_type=ticket_data.get("type", TicketType.FIX.value),
-                    assignee=ticket_data.get("assignee", Users.FRONTEND_DEV.value),
-                    reporter=ticket_data.get("reporter", Users.UI_REGRESSION_AGENT.value),
-                    status=ticket_data.get("status", TicketStatus.TODO.value),
-                )
+            await self.jira.create_ticket(
+                title=title,
+                description=description,
+                priority=ticket_data.get("priority", TicketPriority.HIGH.value),
+                ticket_type=ticket_data.get("type", TicketType.FIX.value),
+                assignee=ticket_data.get("assignee", Users.FRONTEND_DEV.value),
+                reporter=ticket_data.get("reporter", Users.UI_REGRESSION_AGENT.value),
+                status=ticket_data.get("status", TicketStatus.TODO.value),
+            )
 
     async def orchestrate_jira_workflow(self, analysis: Dict) -> None:
         """Orchestrate JIRA ticket workflow based on classification analysis"""

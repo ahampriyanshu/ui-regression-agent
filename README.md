@@ -28,11 +28,11 @@ Complete the missing components to create a working UI regression system:
   - `orchestrate_jira_workflow()` - Main workflow orchestrator
   - `update_resolved_issues()` - Mark completed tickets as done
   - `update_pending_issues()` - Move tickets to on_hold with comments  
-  - `create_new_issues()` - Create JIRA tickets for critical issues
+  - `create_new_issues()` - Create JIRA tickets for differences not covered by existing JIRA tickets
 
 **New Ticket Requirements**
 - All newly created tickets must follow organizational standards:
-  - **Priority**: High (critical regressions require immediate attention)
+  - **Priority**: Set based on severity from the classifier
   - **Type**: Fix (addressing unplanned UI issues)
   - **Assignee**: frontend.dev (UI issues routed to frontend team)
   - **Reporter**: ui_regression.agent (automated system identification)
@@ -126,5 +126,5 @@ This evaluation tests your ability to correctly classify UI changes, apply busin
 
 - **Prompt Engineering**: Write concise, deterministic prompts with examples
 - **Error Handling**: Handle edge cases like identical or invalid images
-- **Classification Rules**: Mark resolved only for perfect matches, pending for partial implementations, and raise new tickets for critical regressions
+- **Classification Rules**: Mark resolved only for perfect matches, pending for partial implementations, and raise new tickets for any uncovered regressions
 - **Use the Streamlit app** - Visualize your results and test interactively

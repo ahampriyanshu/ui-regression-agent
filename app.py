@@ -14,6 +14,51 @@ from PIL import Image
 from src.image_diff_agent import ImageDiffAgent
 from src.classification_agent import ClassificationAgent
 from src.orchestrator_agent import OrchestratorAgent
+from mcp_servers.jira import JIRAMCPServer
+
+
+async def fetch_jira_tickets():
+    """Fetch all JIRA tickets for display"""
+    try:
+        jira_server = JIRAMCPServer()
+        all_tickets = await jira_server.get_all_tickets()
+        return all_tickets
+    except Exception as e:
+        st.error(f"Failed to fetch JIRA tickets: {e}")
+        return []
+
+
+def display_jira_tickets_table(tickets):
+    """Display JIRA tickets in a simple tabular format"""
+    if not tickets:
+        return
+    
+    # Convert tickets to simple list for display
+    table_data = []
+    for ticket in tickets:
+        table_data.append({
+            'Ticket': ticket.get('id', 'N/A'),
+            'Title': ticket.get('title', 'N/A'),
+            'Status': ticket.get('status', 'N/A').replace('_', ' ').title(),
+            'Type': ticket.get('type', 'N/A').title(),
+            'Reporter': ticket.get('reporter', 'N/A'),
+            'Assignee': ticket.get('assignee', 'N/A')
+        })
+    
+    # Display the table using native streamlit dataframe
+    st.dataframe(
+        table_data,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Ticket": st.column_config.TextColumn("Ticket", width="small"),
+            "Title": st.column_config.TextColumn("Title", width="large"),
+            "Status": st.column_config.TextColumn("Status", width="small"),
+            "Type": st.column_config.TextColumn("Type", width="small"),
+            "Reporter": st.column_config.TextColumn("Reporter", width="medium"),
+            "Assignee": st.column_config.TextColumn("Assignee", width="medium")
+        }
+    )
 
 
 async def run_regression_test(production_path: str, preview_path: str) -> Dict:
@@ -228,6 +273,8 @@ def streamlit_interface():
             else:
                 st.error("❌ Default screenshots not found")
 
+    # JIRA tickets will only be displayed when analysis starts
+
     st.header("🔍 Run Analysis")
 
     if st.button("🚀 Start UI Regression Analysis", type="primary"):
@@ -260,6 +307,21 @@ def streamlit_interface():
         else:
             st.error("❌ Please upload both screenshots or use default ones")
             return
+
+        # Fetch and render JIRA tickets when analysis starts
+        with st.spinner("Fetching JIRA ticket..."):
+            try:
+                tickets = asyncio.run(fetch_jira_tickets())
+                st.session_state.jira_tickets = tickets
+                # Display the tickets table
+                if tickets:
+                    st.subheader("📋 JIRA Tickets")
+                    display_jira_tickets_table(tickets)
+                else:
+                    st.warning("No JIRA tickets found")
+            except Exception as e:
+                st.error(f"Failed to fetch JIRA tickets: {e}")
+                st.session_state.jira_tickets = []
 
         with st.spinner(
             "🔍 Analyzing screenshots and checking JIRA tickets..."
@@ -319,68 +381,96 @@ def display_results(result):
         )
         return
 
-    if "details" in result and "differences" in result["details"]:
-        st.subheader("🔍 Differences Detected")
-
-        differences = result["details"]["differences"].get("differences", [])
-        if differences:
-            table_data = []
-            for diff in differences:
-                severity_icon = {
-                    "high": "🔴",
-                    "medium": "🟡", 
-                    "low": "🟢",
-                    "critical": "🔴",
-                    "minor": "🟡",
-                    "cosmetic": "🟢",
-                }.get(diff.get("severity", "low"), "⚪")
+    # Create tabs for better organization
+    tab1, tab2, tab3 = st.tabs(["🔍 Detected Differences", "📋 JIRA Updates", "🔧 Raw Data"])
+    
+    with tab1:
+        if "details" in result and "differences" in result["details"]:
+            differences = result["details"]["differences"].get("differences", [])
+            if differences:
+                st.markdown("### UI Changes Found")
                 
-                table_data.append({
-                    "Element Type": diff.get("element_type", "Unknown").title(),
-                    "Description": diff.get("description", "No description available"),
-                    "Severity": f"{severity_icon} {diff.get('severity', 'unknown').title()}"
-                })
+                table_data = []
+                for diff in differences:
+                    severity_icon = {
+                        "high": "🔴",
+                        "medium": "🟡", 
+                        "low": "🟢",
+                        "critical": "🔴",
+                        "minor": "🟡",
+                        "cosmetic": "🟢",
+                    }.get(diff.get("severity", "low"), "⚪")
+                    
+                    table_data.append({
+                        "Element Type": diff.get("element_type", "Unknown").title(),
+                        "Description": diff.get("description", "No description available"),
+                        "Severity": f"{severity_icon} {diff.get('severity', 'unknown').title()}",
+                        "Location": diff.get("location", "Unknown")
+                    })
+                
+                st.dataframe(
+                    table_data,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Element Type": st.column_config.TextColumn("Element Type", width="small"),
+                        "Description": st.column_config.TextColumn("Description", width="large"),
+                        "Severity": st.column_config.TextColumn("Severity", width="small"),
+                        "Location": st.column_config.TextColumn("Location", width="medium")
+                    }
+                )
+                
+                st.info(f"📊 Total differences found: **{len(differences)}**")
+            else:
+                st.info("✅ No differences detected between screenshots")
+    
+    with tab2:
+        if "details" in result and "analysis" in result["details"]:
+            analysis = result["details"]["analysis"]
             
-            st.dataframe(
-                table_data,
-                width="stretch",
-                hide_index=True
-            )
-    else:
-            st.info("No differences detected")
-
-    if "details" in result and "analysis" in result["details"]:
-        analysis = result["details"]["analysis"]
-        
-        has_updates = any([
-            analysis.get("resolved_tickets"),
-            analysis.get("pending_tickets"), 
-            analysis.get("new_tickets")
-        ])
-        
-        if has_updates:
-            st.subheader("📋 JIRA Ticket Updates")
+            has_updates = any([
+                analysis.get("resolved_tickets"),
+                analysis.get("pending_tickets"), 
+                analysis.get("new_tickets")
+            ])
             
-            if analysis.get("resolved_tickets"):
-                st.success("**✅ Resolved Tickets**")
-                for ticket in analysis["resolved_tickets"]:
-                    ticket_id = ticket.get('ticket_id', 'Unknown')
-                    st.write(f"> {ticket_id} - Marked as completed")
-            
-            if analysis.get("pending_tickets"):
-                st.warning("**🔄 Pending Tickets**") 
-                for ticket in analysis["pending_tickets"]:
-                    ticket_id = ticket.get('ticket_id', 'Unknown')
-                    reason = ticket.get('reason', 'Needs further work')
-                    st.write(f"> {ticket_id} - On hold: {reason}")
-            
-            if analysis.get("new_tickets"):
-                st.error("**🆕 New Issues Created**")
-                for ticket in analysis["new_tickets"]:
-                    title = ticket.get('title', 'Unknown')
-                    st.write(f"> {title} - New critical issue reported")
-
-    with st.expander("🔧 Raw Analysis Data"):
+            if has_updates:
+                st.markdown("### JIRA Ticket Status Updates")
+                
+                # Create columns for different ticket types
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if analysis.get("resolved_tickets"):
+                        st.success("**✅ Resolved Tickets**")
+                        for ticket in analysis["resolved_tickets"]:
+                            ticket_id = ticket.get('ticket_id', 'Unknown')
+                            st.write(f"• **{ticket_id}** - Marked as completed")
+                
+                with col2:
+                    if analysis.get("pending_tickets"):
+                        st.warning("**🔄 Pending Tickets**") 
+                        for ticket in analysis["pending_tickets"]:
+                            ticket_id = ticket.get('ticket_id', 'Unknown')
+                            reason = ticket.get('reason', 'Needs further work')
+                            st.write(f"• **{ticket_id}** - On hold")
+                            st.caption(f"Reason: {reason}")
+                
+                with col3:
+                    if analysis.get("new_tickets"):
+                        st.error("**🆕 New Issues Created**")
+                        for ticket in analysis["new_tickets"]:
+                            title = ticket.get('title', 'Unknown')
+                            priority = ticket.get('priority', 'medium')
+                            st.write(f"• **{title}**")
+                            st.caption(f"Priority: {priority.title()}")
+                
+                
+            else:
+                st.info("🎫 No JIRA ticket updates required")
+    
+    with tab3:
+        st.markdown("### Complete Analysis Output")
         st.json(result)
 
 

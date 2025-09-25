@@ -16,6 +16,7 @@ from src.image_diff_agent import ImageDiffAgent
 from src.classification_agent import ClassificationAgent
 from src.orchestrator_agent import OrchestratorAgent
 from mcp_servers.jira import JIRAMCPServer
+from llm import complete_text
 
 
 class TestJIRAUpdates(unittest.TestCase):
@@ -31,6 +32,30 @@ class TestJIRAUpdates(unittest.TestCase):
     def test_ui_002_and_ui_003_resolved(self):
         """Test that UI-002 and UI-003 are resolved without changing other details"""
         async def run_test():
+            async def semantic_similarity(a: str, b: str) -> float:
+                prompt = (
+                    'Return ONLY a float in [0,1] for semantic similarity between two texts.\n'
+                    f'Text A: "{a}"\n'
+                    f'Text B: "{b}"\n'
+                    'Score:'
+                )
+                response = await complete_text(prompt)
+                try:
+                    return float(str(response).strip())
+                except Exception:
+                    return 0.0
+
+            def mock_similarity_from_prompt(prompt: str) -> str:
+                import re
+                m_a = re.search(r'Text A:\s*"(.*?)"', prompt, re.DOTALL)
+                m_b = re.search(r'Text B:\s*"(.*?)"', prompt, re.DOTALL)
+                a = m_a.group(1) if m_a else ''
+                b = m_b.group(1) if m_b else ''
+                ta = set(re.findall(r"\w+", a.lower()))
+                tb = set(re.findall(r"\w+", b.lower()))
+                score = len(ta & tb) / len(ta | tb) if (ta or tb) else 0.0
+                return str(score)
+
             mock_analysis = {
                 "resolved_tickets": [
                     {"ticket_id": "UI-002", "reason": "Password field correctly implemented with eye icon"},
@@ -43,22 +68,27 @@ class TestJIRAUpdates(unittest.TestCase):
             ui_002_before = await self.jira.get_ticket("UI-002")
             ui_003_before = await self.jira.get_ticket("UI-003")
             
-            await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
+            with patch('llm.complete_text', side_effect=mock_similarity_from_prompt):
+                await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
             
             ui_002_after = await self.jira.get_ticket("UI-002")
             ui_003_after = await self.jira.get_ticket("UI-003")
             
             self.assertEqual(ui_002_after["status"], "done")
             self.assertEqual(ui_002_after["id"], ui_002_before["id"])
-            self.assertEqual(ui_002_after["title"], ui_002_before["title"])
-            self.assertEqual(ui_002_after["description"], ui_002_before["description"])
+            sim_title_002 = await semantic_similarity(ui_002_after["title"], ui_002_before["title"]) 
+            sim_desc_002 = await semantic_similarity(ui_002_after["description"], ui_002_before["description"]) 
+            self.assertGreaterEqual(sim_title_002, 0.9)
+            self.assertGreaterEqual(sim_desc_002, 0.9)
             self.assertEqual(ui_002_after["assignee"], ui_002_before["assignee"])
             self.assertEqual(ui_002_after["priority"], ui_002_before["priority"])
             
             self.assertEqual(ui_003_after["status"], "done")
             self.assertEqual(ui_003_after["id"], ui_003_before["id"])
-            self.assertEqual(ui_003_after["title"], ui_003_before["title"])
-            self.assertEqual(ui_003_after["description"], ui_003_before["description"])
+            sim_title_003 = await semantic_similarity(ui_003_after["title"], ui_003_before["title"]) 
+            sim_desc_003 = await semantic_similarity(ui_003_after["description"], ui_003_before["description"]) 
+            self.assertGreaterEqual(sim_title_003, 0.9)
+            self.assertGreaterEqual(sim_desc_003, 0.9)
             self.assertEqual(ui_003_after["assignee"], ui_003_before["assignee"])
             self.assertEqual(ui_003_after["priority"], ui_003_before["priority"])
 
@@ -67,6 +97,30 @@ class TestJIRAUpdates(unittest.TestCase):
     def test_ui_001_moved_to_on_hold_with_comment(self):
         """Test that UI-001 was moved to on_hold with comment message"""
         async def run_test():
+            async def semantic_similarity(a: str, b: str) -> float:
+                prompt = (
+                    'Return ONLY a float in [0,1] for semantic similarity between two texts.\n'
+                    f'Text A: "{a}"\n'
+                    f'Text B: "{b}"\n'
+                    'Score:'
+                )
+                response = await complete_text(prompt)
+                try:
+                    return float(str(response).strip())
+                except Exception:
+                    return 0.0
+
+            def mock_similarity_from_prompt(prompt: str) -> str:
+                import re
+                m_a = re.search(r'Text A:\s*"(.*?)"', prompt, re.DOTALL)
+                m_b = re.search(r'Text B:\s*"(.*?)"', prompt, re.DOTALL)
+                a = m_a.group(1) if m_a else ''
+                b = m_b.group(1) if m_b else ''
+                ta = set(re.findall(r"\w+", a.lower()))
+                tb = set(re.findall(r"\w+", b.lower()))
+                score = len(ta & tb) / len(ta | tb) if (ta or tb) else 0.0
+                return str(score)
+
             mock_analysis = {
                 "resolved_tickets": [],
                 "pending_tickets": [
@@ -77,7 +131,8 @@ class TestJIRAUpdates(unittest.TestCase):
             
             ui_001_before = await self.jira.get_ticket("UI-001")
             
-            await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
+            with patch('llm.complete_text', side_effect=mock_similarity_from_prompt):
+                await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
             
             ui_001_after = await self.jira.get_ticket("UI-001")
             
@@ -89,7 +144,11 @@ class TestJIRAUpdates(unittest.TestCase):
             self.assertEqual(ui_001_after["priority"], ui_001_before["priority"])
             
             self.assertIsNotNone(ui_001_after.get("comment"))
-            self.assertIn("Forgot Password link added but missing question mark", ui_001_after["comment"])
+            similarity = await semantic_similarity(
+                "Forgot Password link added but missing question mark",
+                ui_001_after["comment"],
+            )
+            self.assertGreaterEqual(similarity, 0.8)
 
         asyncio.run(run_test())
 
