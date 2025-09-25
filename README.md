@@ -9,9 +9,7 @@ You have joined a new team as a QA engineer and discovered several JIRA tickets 
 Build a multi-modal AI agent system that automates UI regression testing by implementing three specialized agents:
 
 - **ImageDiffAgent** - Uses LLM to compare webpage screenshots and detect UI differences.
-
 - **ClassificationAgent** - Analyzes UI differences against existing JIRA tickets to categorize the differences.
-
 - **OrchestratorAgent** - Executes JIRA workflow actions: updates resolved tickets, moves pending tickets to on_hold, creates new tickets.
 
 ## Implementation Requirements
@@ -67,23 +65,16 @@ This evaluation tests your ability to correctly classify UI changes, apply busin
 
 **ImageDiffAgent Output**
 ```json
-[
-    {
-        "description": "Forgot Password link added but without question mark",
-        "element_type": "link",
-        "severity": "low"
-    },
-    {
-        "description": "Password input field now shows as password type with eye icon",
-        "element_type": "input",
-        "severity": "low"
-    },
-    {
-        "description": "About link missing from navigation header",
-        "element_type": "navigation",
-        "severity": "high"
-    }
-]
+{
+  "differences":  [
+        {
+            "description": "Forgot Password link added but without question mark",
+            "element_type": "link",
+            "severity": "low"
+        },
+        ...
+    ]
+}
 ```
 
 ### Case 2: Similar Images
@@ -125,6 +116,6 @@ This evaluation tests your ability to correctly classify UI changes, apply busin
 ## Success Tips
 
 - **Prompt Engineering**: Write concise, deterministic prompts with examples
-- **Error Handling**: Handle edge cases like identical or invalid images
 - **Classification Rules**: Mark resolved only for perfect matches, pending for partial implementations, and raise new tickets for any uncovered regressions
+- **Error Handling**: Handle edge cases like identical or invalid images
 - **Use the Streamlit app** - Visualize your results and test interactively
