@@ -48,7 +48,7 @@ class OrchestratorAgent:
                 title=title,
                 description=description,
                 priority=ticket_data.get("priority", TicketPriority.HIGH.value),
-                ticket_type=ticket_data.get("type", TicketType.FIX.value),
+                ticket_type=ticket_data.get("type", TicketType.BUG.value),
                 assignee=ticket_data.get("assignee", Users.FRONTEND_DEV.value),
                 reporter=ticket_data.get("reporter", Users.UI_REGRESSION_AGENT.value),
                 status=ticket_data.get("status", TicketStatus.TODO.value),

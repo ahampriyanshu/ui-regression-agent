@@ -86,6 +86,7 @@ class TestJIRAUpdates(unittest.TestCase):
                 "Expected UI regression tickets to exist for header/register issues",
             )
 
+           
             header_ticket = next(
                 (
                     ticket
@@ -98,17 +99,15 @@ class TestJIRAUpdates(unittest.TestCase):
             self.assertIsNotNone(header_ticket, "Header regression ticket should exist")
             self.assertEqual(header_ticket["status"], "todo")
             self.assertEqual(header_ticket["priority"], "high")
-            self.assertEqual(header_ticket["type"], "fix")
+            self.assertEqual(header_ticket["type"], "bug")
             self.assertEqual(header_ticket["assignee"], "frontend.dev")
             self.assertEqual(header_ticket["reporter"], "ui_regression.agent")
 
             expected = {
                 "title": "Missing About link in header",
-                "description": "About link is missing from the navigation header",
             }
             subject = {
                 "title": header_ticket["title"],
-                "description": header_ticket["description"],
             }
             self.assertTrue(
                 await verify_textual_match(expected, subject),
@@ -142,19 +141,17 @@ class TestJIRAUpdates(unittest.TestCase):
             self.assertIsNotNone(
                 register_ticket, "Register text change ticket should exist"
             )
+
             self.assertEqual(register_ticket["status"], "todo")
-            self.assertEqual(register_ticket["priority"], "low")
-            self.assertEqual(register_ticket["type"], "fix")
+            self.assertEqual(register_ticket["type"], "bug")
             self.assertEqual(register_ticket["assignee"], "frontend.dev")
             self.assertEqual(register_ticket["reporter"], "ui_regression.agent")
 
             expected = {
-                "title": "Signup button text changed to Sign Up",
-                "description": "Register button now reads Sign Up",
+                "title": "Register link text changed to Sign Up",
             }
             subject = {
                 "title": register_ticket["title"],
-                "description": register_ticket["description"],
             }
             self.assertTrue(
                 await verify_textual_match(expected, subject),

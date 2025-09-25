@@ -170,7 +170,6 @@ class LLMClient:
             )
             content = response.text
 
-            # Cache the response
             try:
                 cache_data = {}
                 if os.path.exists(cache_file):

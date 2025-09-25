@@ -24,6 +24,7 @@ class TicketType(Enum):
 
     FEATURE = "feature"
     FIX = "fix"
+    BUG = "bug"
     PERF_IMPROVEMENT = "perf_improvement"
 
 

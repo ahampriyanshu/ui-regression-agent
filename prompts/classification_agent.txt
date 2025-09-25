@@ -45,7 +45,7 @@ Return your analysis in this EXACT JSON format (no markdown, no extra text):
       "description": "Detailed description of the regression",
       "severity": "critical|minor",
       "priority": "high|medium|low",
-      "type": "feature|fix|perf_improvement",
+      "type": "feature|fix|bug|perf_improvement",
       "assignee": "frontend.dev|backend.dev|product.tester",
       "reporter": "ui_regression.agent",
       "status": "todo"
@@ -58,10 +58,10 @@ Return your analysis in this EXACT JSON format (no markdown, no extra text):
 2. Each difference must be categorized into exactly ONE category
 3. For resolved_tickets: ticket_id must exist in the provided JIRA tickets
 4. For pending_tickets: ticket_id must exist in the provided JIRA tickets
-5. For new_tickets: provide all required fields for ticket creation
+5. For new_tickets: provide all required fields for ticket creation and set type to "bug" for UI regressions that are not already tracked
 6. Be precise in matching - only mark as resolved if implementation is correct
 7. Consider user impact when assigning severity to new issues
-8. Use constants: severity (critical|minor), priority (high|medium|low), type (feature|fix|perf_improvement)
+8. Use constants: severity (critical|minor), priority (high|medium|low), type (feature|fix|bug|perf_improvement)
 
 ## MATCHING GUIDELINES:
 - Look for exact matches between difference descriptions and JIRA titles/descriptions

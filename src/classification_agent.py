@@ -60,32 +60,29 @@ class ClassificationAgent:
         {json.dumps(jira_tickets, indent=2)}
         """
 
+        response_text = await complete_text(prompt)
+        return self._parse_analysis_response(response_text)
+
+    @staticmethod
+    def _parse_analysis_response(response_text: str) -> Dict:
+        """Parse classifier output while handling fenced or malformed JSON."""
         try:
-            response_text = await complete_text(prompt)
+            return json.loads(response_text)
+        except json.JSONDecodeError as err:
+            markdown_json_match = re.search(
+                r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL
+            )
+            if markdown_json_match:
+                try:
+                    return json.loads(markdown_json_match.group(1))
+                except json.JSONDecodeError:
+                    pass
 
-            try:
-                analysis_data = json.loads(response_text)
-                return analysis_data
-            except json.JSONDecodeError as e:
-                markdown_json_match = re.search(
-                    r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL
-                )
-                if markdown_json_match:
-                    try:
-                        analysis_data = json.loads(markdown_json_match.group(1))
-                        return analysis_data
-                    except json.JSONDecodeError:
-                        pass
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    pass
 
-                json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-                if json_match:
-                    try:
-                        analysis_data = json.loads(json_match.group())
-                        return analysis_data
-                    except json.JSONDecodeError:
-                        pass
-
-                raise ValueError("Analysis response does not contain valid JSON") from e
-
-        except Exception:
-            raise
+            raise ValueError("Analysis response does not contain valid JSON") from err

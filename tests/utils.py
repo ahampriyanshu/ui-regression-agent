@@ -24,12 +24,14 @@ async def verify_textual_match(reference: Any, candidate: Any) -> bool:
 
     prompt = (
         "You are a precise semantic comparison assistant.\n"
-        "Determine if the reference text and the candidate text express the same "
-        "UI regression outcome.\n"
-        "Respond with exactly 'true' if they match semantically, otherwise respond "
-        "with exactly 'false'.\n"
-        f"Reference: {reference_text}\n"
-        f"Candidate: {candidate_text}\n"
+        "Compare the meaning of the reference and candidate texts.\n"
+        "Ignore differences in wording, order, or punctuation; focus solely on whether "
+        "they communicate the same UI regression outcome.\n"
+        "Respond with exactly 'true' if the meanings align, otherwise respond with exactly 'false'.\n"
+        "Reference:\n"
+        f"```text\n{reference_text}\n```\n"
+        "Candidate:\n"
+        f"```text\n{candidate_text}\n```\n"
         "Answer:"
     )
 

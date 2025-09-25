@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 bash scripts/install.sh
-python3 app.py screenshots/production.png screenshots/preview.png
+bash scripts/test_main.sh

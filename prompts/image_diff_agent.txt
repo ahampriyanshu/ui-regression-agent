@@ -47,7 +47,7 @@ If images are identical or nearly identical:
   "error": "IMAGES_TOO_SIMILAR"
 }
 
-If either image is not a webpage screenshot:
+If either image is not a webpage screenshot or webpage screenshots are of different websites:
 {
   "error": "INVALID_IMAGE"
 }
