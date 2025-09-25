@@ -95,7 +95,7 @@ class LLMClient:
             ValueError: If environment is not properly configured
             Exception: If LLM call fails
         """
-        # Check cache first
+        
         cache_key = _get_input_hash(prompt, "gpt-4o", 4096)
         cache_file = _get_cache_file(cache_key)
         
@@ -106,13 +106,12 @@ class LLMClient:
                     if cache_key in cache_data:
                         return cache_data[cache_key]
         except (json.JSONDecodeError, IOError, OSError):
-            pass  # Continue to API call if cache read fails
+            pass
 
         try:
             response = await self.text_llm.acomplete(prompt)
             content = response.text
             
-            # Cache the response
             try:
                 cache_data = {}
                 if os.path.exists(cache_file):
@@ -124,7 +123,7 @@ class LLMClient:
                 with open(cache_file, 'w', encoding='utf-8') as f:
                     json.dump(cache_data, f, indent=2)
             except Exception:
-                pass  # Continue silently if caching fails
+                pass 
             
             return content
         except Exception as e:
@@ -147,7 +146,6 @@ class LLMClient:
             ValueError: If environment is not properly configured or images invalid
             Exception: If LLM call fails
         """
-        # Check cache first
         cache_key = _get_input_hash(prompt, "gpt-4o", 4096, image_paths)
         cache_file = _get_cache_file(cache_key)
         
@@ -158,7 +156,7 @@ class LLMClient:
                     if cache_key in cache_data:
                         return cache_data[cache_key]
         except (json.JSONDecodeError, IOError, OSError):
-            pass  # Continue to API call if cache read fails
+            pass 
 
         try:
             image_documents = []
@@ -184,7 +182,7 @@ class LLMClient:
                 with open(cache_file, 'w', encoding='utf-8') as f:
                     json.dump(cache_data, f, indent=2)
             except Exception:
-                pass  # Continue silently if caching fails
+                pass
             
             return content
         except Exception as e:
