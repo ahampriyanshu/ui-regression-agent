@@ -8,4 +8,4 @@ modify or delete these files because doing so results in a zero score.
 * tests/*
 * prompts/image_diff_agent.txt
 * prompts/classification_agent.txt
-* prompts/orchestrator_agent.txt
+* src/orchestrator_agent.py

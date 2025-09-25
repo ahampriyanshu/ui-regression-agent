@@ -16,7 +16,6 @@ Build a multi-modal AI agent system that automates UI regression testing by impl
 
 ## Implementation Requirements
 
-### What You'll Build
 Complete the missing components to create a working UI regression system:
 
 **Prompts** (LLM instructions)
@@ -68,21 +67,21 @@ This evaluation tests your ability to correctly classify UI changes, apply busin
 **ImageDiffAgent Output**
 ```json
 [
-  {
-    "description": "Forgot Password link added but without question mark",
-    "element_type": "link", 
-    "severity": "low"
-  },
-  {
-    "description": "Password input field now shows as password type with eye icon",
-    "element_type": "input",
-    "severity": "low"
-  },
-  {
-    "description": "About link missing from navigation header", 
-    "element_type": "navigation",
-    "severity": "high"
-  }
+    {
+        "description": "Forgot Password link added but without question mark",
+        "element_type": "link",
+        "severity": "low"
+    },
+    {
+        "description": "Password input field now shows as password type with eye icon",
+        "element_type": "input",
+        "severity": "low"
+    },
+    {
+        "description": "About link missing from navigation header",
+        "element_type": "navigation",
+        "severity": "high"
+    }
 ]
 ```
 
