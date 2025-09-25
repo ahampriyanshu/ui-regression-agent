@@ -28,8 +28,7 @@ class ClassificationAgent:
                 return f.read().strip()
         except FileNotFoundError:
             return (
-                "Analyze the UI differences against JIRA tickets to "
-                "classify them."
+                "Analyze the UI differences against JIRA tickets to " "classify them."
             )
 
     def _load_analysis_prompt(self) -> str:
@@ -45,8 +44,10 @@ class ClassificationAgent:
             }
 
         all_tickets = await self.jira.get_all_tickets()
-        jira_tickets = [ticket for ticket in all_tickets if ticket['id'].startswith('UI-')]
-        
+        jira_tickets = [
+            ticket for ticket in all_tickets if ticket["id"].startswith("UI-")
+        ]
+
         print(f"📋 Fetched {len(jira_tickets)} JIRA tickets from server")
 
         prompt = f"""
@@ -71,9 +72,7 @@ class ClassificationAgent:
                 )
                 if markdown_json_match:
                     try:
-                        analysis_data = json.loads(
-                            markdown_json_match.group(1)
-                        )
+                        analysis_data = json.loads(markdown_json_match.group(1))
                         return analysis_data
                     except json.JSONDecodeError:
                         pass
@@ -86,9 +85,7 @@ class ClassificationAgent:
                     except json.JSONDecodeError:
                         pass
 
-                raise ValueError(
-                    "Analysis response does not contain valid JSON"
-                ) from e
+                raise ValueError("Analysis response does not contain valid JSON") from e
 
         except Exception:
             raise

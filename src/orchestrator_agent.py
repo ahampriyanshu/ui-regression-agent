@@ -20,9 +20,7 @@ class OrchestratorAgent:
         for resolved in resolved_tickets:
             ticket_id = resolved.get("ticket_id")
             if ticket_id:
-                await self.jira.update_ticket_status(
-                    ticket_id, TicketStatus.DONE.value
-                )
+                await self.jira.update_ticket_status(ticket_id, TicketStatus.DONE.value)
 
     async def update_pending_issues(self, pending_tickets: List[Dict]) -> None:
         """Update status of pending tickets to 'on_hold' and add comment"""
@@ -30,11 +28,11 @@ class OrchestratorAgent:
             ticket_id = ticket_info.get("ticket_id")
             if ticket_id:
                 reason = ticket_info.get("reason", "Needs further work")
-                
+
                 updated_ticket = await self.jira.update_ticket_status(
                     ticket_id, TicketStatus.ON_HOLD.value
                 )
-                
+
                 if updated_ticket:
                     await self.jira.update_ticket_comment(ticket_id, reason)
 
@@ -76,4 +74,3 @@ class OrchestratorAgent:
             "pending_tickets": pending,
             "new_tickets": new_items,
         }
-

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="17" time="4.023" timestamp="2025-09-25T11:07:29.405173+05:30" hostname="Priyanshu-Tiwari.local"><testcase classname="tests.test_jira_updates.TestJIRAUpdates" name="test_ui_001_moved_to_on_hold_with_comment" time="0.012"><failure message="AssertionError: 0.0 not greater than or equal to 0.7">tests/test_jira_updates.py:136: in test_ui_001_moved_to_on_hold_with_comment
+    asyncio.run(run_test())
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/runners.py:190: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_jira_updates.py:134: in run_test
+    self.assertGreaterEqual(similarity, 0.7)
+E   AssertionError: 0.0 not greater than or equal to 0.7</failure></testcase><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_orchestrator_agent_methods_exist" time="0.002" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_image_diff_agent_prompt_exists" time="0.002" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_orchestrator_handles_new_critical_tickets" time="0.005" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_image_diff_prompt_contains_required_elements" time="0.002" /><testcase classname="tests.test_jira_updates.TestJIRAUpdates" name="test_ui_002_and_ui_003_resolved" time="0.027" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_classification_agent_prompt_exists" time="0.001" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_image_diff_handles_invalid_image_type_error" time="0.006" /><testcase classname="tests.test_jira_updates.TestJIRAUpdates" name="test_new_ui_ticket_raised_for_header_issue" time="0.012"><failure message="AssertionError: 11 != 10">tests/test_jira_updates.py:178: in test_new_ui_ticket_raised_for_header_issue
+    asyncio.run(run_test())
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/runners.py:190: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../.pyenv/versions/3.11.11/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_jira_updates.py:168: in run_test
+    self.assertEqual(final_count, initial_count + 1)
+E   AssertionError: 11 != 10</failure></testcase><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_image_diff_handles_similar_images_error" time="0.004" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_classification_prompt_contains_required_elements" time="0.001" /><testcase classname="tests.test_jira_updates.TestJIRAUpdates" name="test_other_tickets_left_untouched" time="0.017" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_orchestrator_uses_constants" time="0.001" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_orchestrator_handles_resolved_tickets" time="0.005" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_orchestrator_orchestrate_jira_workflow_structure" time="0.004" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_orchestrator_implements_jira_integration" time="0.002" /><testcase classname="tests.test_ui_regression_agent.TestUIRegressionAgent" name="test_orchestrator_handles_pending_tickets" time="0.007" /></testsuite></testsuites>

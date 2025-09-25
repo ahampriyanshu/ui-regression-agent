@@ -26,7 +26,9 @@ def _get_cache_file(input_hash: str) -> str:
     return os.path.join(cache_dir, f"cache_{input_hash[:8]}.json")
 
 
-def _get_input_hash(prompt: str, model: str, max_tokens: int, image_paths: Optional[List[str]] = None) -> str:
+def _get_input_hash(
+    prompt: str, model: str, max_tokens: int, image_paths: Optional[List[str]] = None
+) -> str:
     """Create a hash of input parameters for caching."""
     image_str = "|".join(sorted(image_paths)) if image_paths else ""
     input_str = f"{prompt}|{model}|{max_tokens}|{image_str}"
@@ -58,12 +60,12 @@ class LLMClient:
         """Get text-only LLM instance (lazy initialization)"""
         if self._text_llm is None:
             self._text_llm = OpenAI(
-                model="gpt-4o", 
+                model="gpt-4o",
                 max_tokens=4096,
                 temperature=0.0,
                 top_p=0.1,
                 presence_penalty=0.0,
-                frequency_penalty=0.0
+                frequency_penalty=0.0,
             )
         return self._text_llm
 
@@ -72,12 +74,12 @@ class LLMClient:
         """Get vision-enabled LLM instance (lazy initialization)"""
         if self._vision_llm is None:
             self._vision_llm = OpenAIMultiModal(
-                model="gpt-4o", 
+                model="gpt-4o",
                 max_new_tokens=4096,
                 temperature=0.0,
                 top_p=0.1,
                 presence_penalty=0.0,
-                frequency_penalty=0.0
+                frequency_penalty=0.0,
             )
         return self._vision_llm
 
@@ -95,13 +97,13 @@ class LLMClient:
             ValueError: If environment is not properly configured
             Exception: If LLM call fails
         """
-        
+
         cache_key = _get_input_hash(prompt, "gpt-4o", 4096)
         cache_file = _get_cache_file(cache_key)
-        
+
         try:
             if os.path.exists(cache_file):
-                with open(cache_file, 'r', encoding='utf-8') as f:
+                with open(cache_file, "r", encoding="utf-8") as f:
                     cache_data = json.load(f)
                     if cache_key in cache_data:
                         return cache_data[cache_key]
@@ -111,27 +113,25 @@ class LLMClient:
         try:
             response = await self.text_llm.acomplete(prompt)
             content = response.text
-            
+
             try:
                 cache_data = {}
                 if os.path.exists(cache_file):
-                    with open(cache_file, 'r', encoding='utf-8') as f:
+                    with open(cache_file, "r", encoding="utf-8") as f:
                         cache_data = json.load(f)
-                
+
                 cache_data[cache_key] = content
-                
-                with open(cache_file, 'w', encoding='utf-8') as f:
+
+                with open(cache_file, "w", encoding="utf-8") as f:
                     json.dump(cache_data, f, indent=2)
             except Exception:
-                pass 
-            
+                pass
+
             return content
         except Exception as e:
             raise Exception(f"Text LLM completion failed: {e}") from e
 
-    async def complete_vision(
-        self, prompt: str, image_paths: List[str]
-    ) -> str:
+    async def complete_vision(self, prompt: str, image_paths: List[str]) -> str:
         """
         Complete a vision prompt with images and caching
 
@@ -148,15 +148,15 @@ class LLMClient:
         """
         cache_key = _get_input_hash(prompt, "gpt-4o", 4096, image_paths)
         cache_file = _get_cache_file(cache_key)
-        
+
         try:
             if os.path.exists(cache_file):
-                with open(cache_file, 'r', encoding='utf-8') as f:
+                with open(cache_file, "r", encoding="utf-8") as f:
                     cache_data = json.load(f)
                     if cache_key in cache_data:
                         return cache_data[cache_key]
         except (json.JSONDecodeError, IOError, OSError):
-            pass 
+            pass
 
         try:
             image_documents = []
@@ -169,21 +169,21 @@ class LLMClient:
                 prompt=prompt, image_documents=image_documents
             )
             content = response.text
-            
+
             # Cache the response
             try:
                 cache_data = {}
                 if os.path.exists(cache_file):
-                    with open(cache_file, 'r', encoding='utf-8') as f:
+                    with open(cache_file, "r", encoding="utf-8") as f:
                         cache_data = json.load(f)
-                
+
                 cache_data[cache_key] = content
-                
-                with open(cache_file, 'w', encoding='utf-8') as f:
+
+                with open(cache_file, "w", encoding="utf-8") as f:
                     json.dump(cache_data, f, indent=2)
             except Exception:
                 pass
-            
+
             return content
         except Exception as e:
             raise Exception(f"Vision LLM completion failed: {e}") from e

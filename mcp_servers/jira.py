@@ -11,9 +11,7 @@ from typing import Dict, List, Optional
 from fastmcp import FastMCP
 
 
-DB_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "data", "databases", "jira.db"
-)
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "databases", "jira.db")
 
 mcp = FastMCP("JIRA Mock Server")
 
@@ -136,9 +134,7 @@ def update_ticket_status(ticket_id: str, new_status: str) -> Dict:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT id FROM jira_tickets WHERE id = ?", (ticket_id,)
-        )
+        cursor.execute("SELECT id FROM jira_tickets WHERE id = ?", (ticket_id,))
         if not cursor.fetchone():
             conn.close()
             return {"success": False, "error": f"Ticket {ticket_id} not found"}
@@ -173,9 +169,7 @@ def update_ticket_assignee(ticket_id: str, new_assignee: str) -> Dict:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT id FROM jira_tickets WHERE id = ?", (ticket_id,)
-        )
+        cursor.execute("SELECT id FROM jira_tickets WHERE id = ?", (ticket_id,))
         if not cursor.fetchone():
             conn.close()
             return {"success": False, "error": f"Ticket {ticket_id} not found"}
@@ -328,21 +322,15 @@ class JIRAMCPServer:
         """Get tickets by assignee"""
         return get_tickets_by_assignee(assignee)
 
-    async def update_ticket_status(
-        self, ticket_id: str, new_status: str
-    ) -> Dict:
+    async def update_ticket_status(self, ticket_id: str, new_status: str) -> Dict:
         """Update ticket status"""
         return update_ticket_status(ticket_id, new_status)
 
-    async def update_ticket_assignee(
-        self, ticket_id: str, new_assignee: str
-    ) -> Dict:
+    async def update_ticket_assignee(self, ticket_id: str, new_assignee: str) -> Dict:
         """Update ticket assignee"""
         return update_ticket_assignee(ticket_id, new_assignee)
 
-    async def update_ticket_comment(
-        self, ticket_id: str, comment: str
-    ) -> Dict:
+    async def update_ticket_comment(self, ticket_id: str, comment: str) -> Dict:
         """Update ticket comment"""
         return update_ticket_comment(ticket_id, comment)
 

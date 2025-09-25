@@ -24,8 +24,7 @@ class ImageDiffAgent:
                 return f.read().strip()
         except FileNotFoundError:
             return (
-                "Compare the production and preview screenshots for "
-                "UI differences."
+                "Compare the production and preview screenshots for " "UI differences."
             )
 
     async def compare_screenshots(
@@ -39,16 +38,18 @@ class ImageDiffAgent:
 
             try:
                 differences_data = json.loads(response_text)
-                
+
                 if "error" in differences_data:
                     error_code = differences_data["error"]
                     if error_code == "IMAGES_TOO_SIMILAR":
-                        raise ValueError("Images are too similar to detect meaningful differences")
+                        raise ValueError(
+                            "Images are too similar to detect meaningful differences"
+                        )
                     elif error_code == "INVALID_IMAGE":
-                         raise ValueError("Invalid or mismatched webpage screenshots")
+                        raise ValueError("Invalid or mismatched webpage screenshots")
                     else:
                         raise ValueError(f"LLM returned error: {error_code}")
-                
+
                 return differences_data
             except json.JSONDecodeError as e:
                 markdown_json_match = re.search(
@@ -56,19 +57,21 @@ class ImageDiffAgent:
                 )
                 if markdown_json_match:
                     try:
-                        differences_data = json.loads(
-                            markdown_json_match.group(1)
-                        )
-                        
+                        differences_data = json.loads(markdown_json_match.group(1))
+
                         if "error" in differences_data:
                             error_code = differences_data["error"]
                             if error_code == "IMAGES_TOO_SIMILAR":
-                                raise ValueError("Images are too similar to detect meaningful differences")
+                                raise ValueError(
+                                    "Images are too similar to detect meaningful differences"
+                                )
                             elif error_code == "INVALID_IMAGE":
-                                raise ValueError("Invalid or mismatched webpage screenshots")
+                                raise ValueError(
+                                    "Invalid or mismatched webpage screenshots"
+                                )
                             else:
                                 raise ValueError(f"LLM returned error: {error_code}")
-                        
+
                         return differences_data
                     except json.JSONDecodeError:
                         pass
@@ -77,23 +80,25 @@ class ImageDiffAgent:
                 if json_match:
                     try:
                         differences_data = json.loads(json_match.group())
-                        
+
                         if "error" in differences_data:
                             error_code = differences_data["error"]
                             if error_code == "IMAGES_TOO_SIMILAR":
-                                raise ValueError("Images are too similar to detect meaningful differences")
+                                raise ValueError(
+                                    "Images are too similar to detect meaningful differences"
+                                )
                             elif error_code == "INVALID_IMAGE":
-                                raise ValueError("Invalid or mismatched webpage screenshots")
+                                raise ValueError(
+                                    "Invalid or mismatched webpage screenshots"
+                                )
                             else:
                                 raise ValueError(f"LLM returned error: {error_code}")
-                        
+
                         return differences_data
                     except json.JSONDecodeError:
                         pass
 
-                raise ValueError(
-                    "LLM response does not contain valid JSON"
-                ) from e
+                raise ValueError("LLM response does not contain valid JSON") from e
 
         except Exception:
             raise

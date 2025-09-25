@@ -78,7 +78,6 @@ def create_jira_database():
     conn.close()
 
 
-
 def main():
     """Main function to seed JIRA database"""
     create_jira_database()
