@@ -56,14 +56,24 @@ class OrchestratorAgent:
                 status=ticket_data.get("status", TicketStatus.TODO.value),
             )
 
-    async def orchestrate_jira_workflow(self, analysis: Dict) -> None:
+    async def orchestrate_jira_workflow(self, analysis: Dict) -> Dict:
         """Orchestrate JIRA ticket workflow based on classification analysis"""
-        if analysis.get("resolved_tickets"):
-            await self.update_resolved_issues(analysis["resolved_tickets"])
+        resolved = analysis.get("resolved_tickets", [])
+        pending = analysis.get("pending_tickets", [])
+        new_items = analysis.get("new_tickets", [])
 
-        if analysis.get("pending_tickets"):
-            await self.update_pending_issues(analysis["pending_tickets"])
+        if resolved:
+            await self.update_resolved_issues(resolved)
 
-        if analysis.get("new_tickets"):
-            await self.create_new_issues(analysis["new_tickets"])
+        if pending:
+            await self.update_pending_issues(pending)
+
+        if new_items:
+            await self.create_new_issues(new_items)
+
+        return {
+            "resolved_tickets": resolved,
+            "pending_tickets": pending,
+            "new_tickets": new_items,
+        }
 

@@ -29,9 +29,23 @@ class TestJIRAUpdates(unittest.TestCase):
         self.orchestrator_agent = OrchestratorAgent()
         self.jira = JIRAMCPServer()
 
-    def test_ui_002_and_ui_003_resolved(self):
+    @patch('tests.test_jira_updates.complete_text')
+    def test_ui_002_and_ui_003_resolved(self, mock_complete_text):
         """Test that UI-002 and UI-003 are resolved without changing other details"""
         async def run_test():
+            def mock_similarity_from_prompt(prompt: str) -> str:
+                import re
+                m_a = re.search(r'Text A:\s*"(.*?)"', prompt, re.DOTALL)
+                m_b = re.search(r'Text B:\s*"(.*?)"', prompt, re.DOTALL)
+                a = m_a.group(1) if m_a else ''
+                b = m_b.group(1) if m_b else ''
+                ta = set(re.findall(r"\w+", a.lower()))
+                tb = set(re.findall(r"\w+", b.lower()))
+                score = len(ta & tb) / len(ta | tb) if (ta or tb) else 0.0
+                return str(score)
+
+            mock_complete_text.side_effect = mock_similarity_from_prompt
+
             async def semantic_similarity(a: str, b: str) -> float:
                 prompt = (
                     'Return ONLY a float in [0,1] for semantic similarity between two texts.\n'
@@ -45,17 +59,6 @@ class TestJIRAUpdates(unittest.TestCase):
                 except Exception:
                     return 0.0
 
-            def mock_similarity_from_prompt(prompt: str) -> str:
-                import re
-                m_a = re.search(r'Text A:\s*"(.*?)"', prompt, re.DOTALL)
-                m_b = re.search(r'Text B:\s*"(.*?)"', prompt, re.DOTALL)
-                a = m_a.group(1) if m_a else ''
-                b = m_b.group(1) if m_b else ''
-                ta = set(re.findall(r"\w+", a.lower()))
-                tb = set(re.findall(r"\w+", b.lower()))
-                score = len(ta & tb) / len(ta | tb) if (ta or tb) else 0.0
-                return str(score)
-
             mock_analysis = {
                 "resolved_tickets": [
                     {"ticket_id": "UI-002", "reason": "Password field correctly implemented with eye icon"},
@@ -68,8 +71,7 @@ class TestJIRAUpdates(unittest.TestCase):
             ui_002_before = await self.jira.get_ticket("UI-002")
             ui_003_before = await self.jira.get_ticket("UI-003")
             
-            with patch('llm.complete_text', side_effect=mock_similarity_from_prompt):
-                await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
+            await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
             
             ui_002_after = await self.jira.get_ticket("UI-002")
             ui_003_after = await self.jira.get_ticket("UI-003")
@@ -94,9 +96,23 @@ class TestJIRAUpdates(unittest.TestCase):
 
         asyncio.run(run_test())
 
-    def test_ui_001_moved_to_on_hold_with_comment(self):
+    @patch('tests.test_jira_updates.complete_text')
+    def test_ui_001_moved_to_on_hold_with_comment(self, mock_complete_text):
         """Test that UI-001 was moved to on_hold with comment message"""
         async def run_test():
+            def mock_similarity_from_prompt(prompt: str) -> str:
+                import re
+                m_a = re.search(r'Text A:\s*"(.*?)"', prompt, re.DOTALL)
+                m_b = re.search(r'Text B:\s*"(.*?)"', prompt, re.DOTALL)
+                a = m_a.group(1) if m_a else ''
+                b = m_b.group(1) if m_b else ''
+                ta = set(re.findall(r"\w+", a.lower()))
+                tb = set(re.findall(r"\w+", b.lower()))
+                score = len(ta & tb) / len(ta | tb) if (ta or tb) else 0.0
+                return str(score)
+
+            mock_complete_text.side_effect = mock_similarity_from_prompt
+
             async def semantic_similarity(a: str, b: str) -> float:
                 prompt = (
                     'Return ONLY a float in [0,1] for semantic similarity between two texts.\n'
@@ -110,17 +126,6 @@ class TestJIRAUpdates(unittest.TestCase):
                 except Exception:
                     return 0.0
 
-            def mock_similarity_from_prompt(prompt: str) -> str:
-                import re
-                m_a = re.search(r'Text A:\s*"(.*?)"', prompt, re.DOTALL)
-                m_b = re.search(r'Text B:\s*"(.*?)"', prompt, re.DOTALL)
-                a = m_a.group(1) if m_a else ''
-                b = m_b.group(1) if m_b else ''
-                ta = set(re.findall(r"\w+", a.lower()))
-                tb = set(re.findall(r"\w+", b.lower()))
-                score = len(ta & tb) / len(ta | tb) if (ta or tb) else 0.0
-                return str(score)
-
             mock_analysis = {
                 "resolved_tickets": [],
                 "pending_tickets": [
@@ -131,8 +136,7 @@ class TestJIRAUpdates(unittest.TestCase):
             
             ui_001_before = await self.jira.get_ticket("UI-001")
             
-            with patch('llm.complete_text', side_effect=mock_similarity_from_prompt):
-                await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
+            await self.orchestrator_agent.orchestrate_jira_workflow(mock_analysis)
             
             ui_001_after = await self.jira.get_ticket("UI-001")
             
